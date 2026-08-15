@@ -15,14 +15,14 @@
             </div>
             
             <div class="header-right">
-                <!-- Виджет часов -->
                 <div class="clock-widget">
                     <span class="clock-time" id="clockTime">00:00:00</span>
                     <span class="clock-date" id="clockDate">0000-00-00</span>
                 </div>
                 
-                <!-- Контролы: Язык, Цветовая палитра, Лидерборд, Звук и Тема -->
                 <div class="controls">
+                    <button id="btnAuth" class="btn-small" style="margin-right: 10px;">👤 Login</button>
+
                     <select id="langSelect" class="lang-select" aria-label="Select language">
                         <option value="en">English (EN)</option>
                         <option value="es">Español (ES)</option>
@@ -54,7 +54,7 @@
             </div>
         </header>
 
-        <!-- ЭКРАН 1: Главное меню -->
+        <!-- Главное меню -->
         <main id="menu-screen" class="screen active">
             <h2 class="section-title" data-i18n="chooseGame">Choose a game:</h2>
             <div class="games-grid" id="gamesGrid">
@@ -62,7 +62,7 @@
                     <button class="fav-btn" aria-label="Favorite">☆</button>
                     <div class="game-icon">❌⭕</div>
                     <h3 class="game-name" data-i18n="tictactoe">Tic-Tac-Toe</h3>
-                    <p class="game-desc" data-i18n="tictactoeDesc">Play against computer</p>
+                    <p class="game-desc" data-i18n="tictactoeDesc">Play against computer or online</p>
                 </div>
                 
                 <div class="game-card" data-game="rps" draggable="true">
@@ -88,19 +88,18 @@
             </div>
         </main>
 
-        <!-- ЭКРАН 2: Игровой экран -->
+        <!-- Игровой экран -->
         <main id="game-screen" class="screen">
             <button id="back-btn" class="back-btn" data-i18n="backBtn">⬅ Back to Menu</button>
             <div id="game-container" class="game-container"></div>
         </main>
 
-        <!-- ЭКРАН 3: Таблица рекордов -->
+        <!-- Таблица рекордов -->
         <main id="leaderboard-screen" class="screen">
             <button id="lb-back-btn" class="back-btn" data-i18n="backBtn">⬅ Back to Menu</button>
             <div class="game-container">
                 <div class="leaderboard-header">
                     <h2 class="section-title" data-i18n="leaderboard" style="margin: 0;">🏆 Top Players</h2>
-                    <button id="btnChangeName" class="btn-small" data-i18n="changeName">✏️ Change Name</button>
                 </div>
                 <div class="leaderboard-tabs">
                     <button class="lb-tab active" data-tab="tictactoe" data-i18n="tictactoe">Tic-Tac-Toe</button>
@@ -111,8 +110,23 @@
                 <div class="leaderboard-list" id="leaderboardList"></div>
             </div>
         </main>
+
+        <!-- Модальное окно авторизации JWT -->
+        <div id="authModal" class="modal-overlay" style="display:none;">
+            <div class="modal-content">
+                <button id="authClose" class="modal-close">×</button>
+                <h2 id="authTitle" class="section-title" style="margin-bottom:0;">Login</h2>
+                <input type="text" id="authUsername" placeholder="Username" class="auth-input">
+                <input type="password" id="authPassword" placeholder="Password" class="auth-input">
+                <p id="authError" style="color:var(--score-lose); font-size: 0.9rem; display:none;"></p>
+                <button id="authSubmit" class="restart-btn" style="margin-top: 10px;">Submit</button>
+                <p id="authSwitch" style="margin-top: 15px; font-size: 0.9rem; color: var(--text-muted); cursor:pointer;">Don't have an account? Register</p>
+            </div>
+        </div>
     </div>
 
+    <!-- Подключение библиотеки SignalR для мультиплеера -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
