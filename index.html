@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Retro Game Hub</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Шапка -->
+        <header class="header">
+            <div class="header-left">
+                <h1 class="hub-title" data-i18n="hubTitle">🎮 Retro Hub</h1>
+            </div>
+            
+            <div class="header-right">
+                <!-- Виджет часов -->
+                <div class="clock-widget">
+                    <span class="clock-time" id="clockTime">00:00:00</span>
+                    <span class="clock-date" id="clockDate">0000-00-00</span>
+                </div>
+                
+                <!-- Контролы: Язык, Цветовая палитра, Лидерборд, Звук и Тема -->
+                <div class="controls">
+                    <select id="langSelect" class="lang-select" aria-label="Select language">
+                        <option value="en">English (EN)</option>
+                        <option value="es">Español (ES)</option>
+                        <option value="fr">Français (FR)</option>
+                        <option value="zh-CN">简体中文 (ZH-CN)</option>
+                        <option value="zh-TW">繁體中文 (ZH-TW)</option>
+                        <option value="ru">Русский (RU)</option>
+                        <option value="kk">Қазақша (KK)</option>
+                        <option value="be">Беларуская (BY)</option>
+                        <option value="uk">Українська (UK)</option>
+                        <option value="uz">Oʻzbekcha (UZ)</option>
+                    </select>
+
+                    <select id="colorSelect" class="lang-select" aria-label="Select accent color">
+                        <option value="cyan">💠 Cyan</option>
+                        <option value="purple">🟣 Purple</option>
+                        <option value="green">🟢 Green</option>
+                        <option value="orange">🟠 Orange</option>
+                        <option value="pink">🌸 Pink</option>
+                        <option value="yellow">🟡 Yellow</option>
+                        <option value="blue">🔵 Blue</option>
+                        <option value="red">🔴 Red</option>
+                    </select>
+
+                    <button id="btnLeaderboard" class="icon-toggle" aria-label="Leaderboard">🏆</button>
+                    <button id="soundToggle" class="icon-toggle" aria-label="Toggle sound"><span class="sound-icon">🔊</span></button>
+                    <button id="themeToggle" class="icon-toggle" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
+                </div>
+            </div>
+        </header>
+
+        <!-- ЭКРАН 1: Главное меню -->
+        <main id="menu-screen" class="screen active">
+            <h2 class="section-title" data-i18n="chooseGame">Choose a game:</h2>
+            <div class="games-grid" id="gamesGrid">
+                <div class="game-card" data-game="tictactoe" draggable="true">
+                    <button class="fav-btn" aria-label="Favorite">☆</button>
+                    <div class="game-icon">❌⭕</div>
+                    <h3 class="game-name" data-i18n="tictactoe">Tic-Tac-Toe</h3>
+                    <p class="game-desc" data-i18n="tictactoeDesc">Play against computer</p>
+                </div>
+                
+                <div class="game-card" data-game="rps" draggable="true">
+                    <button class="fav-btn" aria-label="Favorite">☆</button>
+                    <div class="game-icon">✊✌️✋</div>
+                    <h3 class="game-name" data-i18n="rps">Rock-Paper-Scissors</h3>
+                    <p class="game-desc" data-i18n="rpsDesc">Play against computer</p>
+                </div>
+
+                <div class="game-card" data-game="minesweeper" draggable="true">
+                    <button class="fav-btn" aria-label="Favorite">☆</button>
+                    <div class="game-icon">💣</div>
+                    <h3 class="game-name" data-i18n="minesweeper">Minesweeper</h3>
+                    <p class="game-desc" data-i18n="minesweeperDesc">Classic logic puzzle</p>
+                </div>
+
+                <div class="game-card" data-game="snake" draggable="true">
+                    <button class="fav-btn" aria-label="Favorite">☆</button>
+                    <div class="game-icon">🐍</div>
+                    <h3 class="game-name" data-i18n="snake">Snake</h3>
+                    <p class="game-desc" data-i18n="snakeDesc">Classic arcade</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- ЭКРАН 2: Игровой экран -->
+        <main id="game-screen" class="screen">
+            <button id="back-btn" class="back-btn" data-i18n="backBtn">⬅ Back to Menu</button>
+            <div id="game-container" class="game-container"></div>
+        </main>
+
+        <!-- ЭКРАН 3: Таблица рекордов -->
+        <main id="leaderboard-screen" class="screen">
+            <button id="lb-back-btn" class="back-btn" data-i18n="backBtn">⬅ Back to Menu</button>
+            <div class="game-container">
+                <div class="leaderboard-header">
+                    <h2 class="section-title" data-i18n="leaderboard" style="margin: 0;">🏆 Top Players</h2>
+                    <button id="btnChangeName" class="btn-small" data-i18n="changeName">✏️ Change Name</button>
+                </div>
+                <div class="leaderboard-tabs">
+                    <button class="lb-tab active" data-tab="tictactoe" data-i18n="tictactoe">Tic-Tac-Toe</button>
+                    <button class="lb-tab" data-tab="rps" data-i18n="rps">RPS</button>
+                    <button class="lb-tab" data-tab="minesweeper" data-i18n="minesweeper">Minesweeper</button>
+                    <button class="lb-tab" data-tab="snake" data-i18n="snake">Snake</button>
+                </div>
+                <div class="leaderboard-list" id="leaderboardList"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+# Скомпилированные файлы .NET и логи
+bin/
+obj/
+*.log
+
+# Локальные настройки и секреты сервера
+appsettings.Development.json
+appsettings.Local.json
+
+# Настройки редакторов (VS Code, Visual Studio)
+.vscode/
+.vs/
+*.user
+*.userosscache
+*.suo
+
+# Системные файлы ОС
+.DS_Store
+Thumbs.db
