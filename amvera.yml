@@ -1,7 +1,8 @@
 meta:
   environment: csharp
-  toolchain: dotnet
-  version: "8.0"
+  toolchain:
+    name: dotnet
+    version: "8.0"
 
 build:
   image: ""
