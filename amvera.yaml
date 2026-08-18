@@ -1,0 +1,9 @@
+meta:
+  environment: csharp
+  toolchain:
+    name: dotnet
+    version: 8.0
+run:
+  buildFileName: publish/RetroHub.Api.dll
+  persistenceMount: /data
+  containerPort: 5103
