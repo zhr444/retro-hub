@@ -9,7 +9,7 @@ namespace RetroHub.Api.Controllers;
 public class LeaderboardController : ControllerBase
 {
     // Строка подключения к PostgreSQL
-    private readonly string _connectionString = "Host=localhost;Port=5432;Database=Leaderboard;Username=postgres;Password=49275651";
+    private readonly string _connectionString = "Host=localhost;Port=5432;Database=Leaderboard;Username=postgres;Password=YOUR_PASSWORD";
 
     // Модель данных, которую мы будем получать от нашего JavaScript
     public class RecordDto
