@@ -12,7 +12,7 @@ namespace RetroHub.Api.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly string _connectionString = "Host=localhost;Port=5432;Database=Leaderboard;Username=postgres;Password=49275651";
+    private readonly string _connectionString = "Host=localhost;Port=5432;Database=Leaderboard;Username=postgres;Password=YOUR_PASSWORD";
     private readonly string _jwtKey = "SuperSecretKey_RetroHub_2026_For_Secure_Tokens!";
 
     public class AuthDto { public string Username { get; set; } = string.Empty; public string Password { get; set; } = string.Empty; }
