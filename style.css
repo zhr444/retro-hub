@@ -140,6 +140,24 @@ body { background-color: var(--bg-body); color: var(--text-primary); font-family
 .snake-btn { width: 60px; height: 60px; background-color: rgba(255, 255, 255, 0.1); border: 2px solid var(--accent-color); border-radius: 50%; color: var(--accent-color); font-size: 24px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.1s; box-shadow: 0 0 15px var(--accent-glow); }
 .snake-btn:active { background-color: var(--accent-color); color: var(--bg-body); transform: scale(0.9); box-shadow: 0 0 25px var(--accent-color); }
 
+/* --- ТЕТРИС --- */
+.tetris-header { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 400px; padding: 10px 20px; font-size: 16px; font-weight: bold; text-shadow: 0 0 10px var(--accent-glow); margin-bottom: 15px; background: var(--bg-surface-2); border-radius: 10px; border: 1px solid var(--border-color); transition: text-shadow var(--transition); }
+.tetris-layout { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+#tetris-canvas { background-color: var(--canvas-bg); border: 2px solid var(--accent-color); border-radius: 10px; box-shadow: 0 0 20px var(--accent-glow); transition: border-color var(--transition), box-shadow var(--transition); }
+.tetris-sidebar { display: flex; flex-direction: column; gap: 15px; width: 120px; }
+.next-piece-box { background: var(--bg-surface-2); padding: 10px; border-radius: 10px; border: 1px solid var(--border-color); text-align: center; color: var(--text-primary); font-weight: 600; font-size: 0.9rem; }
+#tetris-next { background: var(--canvas-bg); margin-top: 8px; border-radius: 6px; border: 1px solid var(--border-color); display: block; margin-left: auto; margin-right: auto; width: 100%; max-width: 96px; }
+
+/* --- ТЕТРИС Дополнения (Чекбокс и Правила) --- */
+.retro-checkbox-label { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--text-primary); cursor: pointer; transition: var(--transition); }
+.retro-checkbox-label input[type="checkbox"] { accent-color: var(--accent-color); width: 16px; height: 16px; cursor: pointer; }
+.tetris-rules { margin-top: 10px; width: 100%; background: var(--bg-surface-2); border: 1px solid var(--border-color); border-radius: 10px; padding: 10px; transition: var(--transition); }
+.tetris-rules summary { cursor: pointer; font-weight: bold; color: var(--accent-color); outline: none; list-style: none; text-align: center; font-size: 0.9rem; }
+.tetris-rules summary::-webkit-details-marker { display: none; }
+.tetris-rules .rules-content { font-size: 0.75rem; color: var(--text-muted); text-align: left; margin-top: 10px; line-height: 1.4; }
+.tetris-rules .rules-content p { margin-bottom: 8px; }
+.tetris-rules .rules-content strong { color: var(--text-primary); }
+
 @media (max-width: 600px) {
     .header { flex-direction: column; justify-content: center; }
     .header-right { justify-content: center; width: 100%; }
@@ -153,4 +171,7 @@ body { background-color: var(--bg-body); color: var(--text-primary); font-family
     .ms-cell { width: 30px; height: 30px; font-size: 1rem; }
     .leaderboard-header { flex-direction: column; text-align: center; }
     .modal-overlay { position: fixed; }
+    .tetris-layout { flex-direction: column; align-items: center; }
+    .tetris-sidebar { width: 100%; max-width: 240px; flex-direction: row; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; }
+    .tetris-rules { width: 100%; }
 }
