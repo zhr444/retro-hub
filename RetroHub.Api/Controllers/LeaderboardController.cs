@@ -8,8 +8,12 @@ namespace RetroHub.Api.Controllers;
 [Route("api/[controller]")]
 public class LeaderboardController : ControllerBase
 {
-    // Строка подключения к PostgreSQL
-    private readonly string _connectionString = "Host=localhost;Port=5432;Database=Leaderboard;Username=postgres;Password=49275651";
+    private readonly IConfiguration _configuration;
+
+    public LeaderboardController(IConfiguration configuration)
+    {
+        _configuration = configuration;
+    }
 
     // Модель данных, которую мы будем получать от нашего JavaScript
     public class RecordDto
@@ -23,7 +27,7 @@ public class LeaderboardController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> SaveRecord([FromBody] RecordDto record)
     {
-        using var connection = new NpgsqlConnection(_connectionString);
+        using var connection = new NpgsqlConnection(_configuration.GetConnectionString("DefaultConnection"));
         var sql = @"
             INSERT INTO Leaderboard (PlayerName, GameName, Wins) 
             VALUES (@PlayerName, @GameName, @Wins)";
@@ -36,7 +40,7 @@ public class LeaderboardController : ControllerBase
     [HttpGet("{gameName}")]
     public async Task<IActionResult> GetTopPlayers(string gameName)
     {
-        using var connection = new NpgsqlConnection(_connectionString);
+        using var connection = new NpgsqlConnection(_configuration.GetConnectionString("DefaultConnection"));
         var sql = @"
             SELECT PlayerName, Wins 
             FROM Leaderboard 
