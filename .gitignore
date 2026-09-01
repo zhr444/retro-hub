@@ -5,8 +5,7 @@ obj/
 
 # Файлы конфигурации (чтобы не слить пароль от базы данных в интернет!)
 # Локальные настройки и секреты сервера
-appsettings.Development.json
-appsettings.Local.json
+Controllers/
 AuthController.cs
 LeaderboardController.cs
 
