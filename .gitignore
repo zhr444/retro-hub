@@ -4,10 +4,8 @@ obj/
 *.log
 
 # Файлы конфигурации (чтобы не слить пароль от базы данных в интернет!)
-# Локальные настройки и секреты сервера
-Controllers/
-AuthController.cs
-LeaderboardController.cs
+appsettings.Development.json
+appsettings.Local.json
 
 # Настройки редакторов (VS Code, Visual Studio)
 .vscode/
@@ -19,4 +17,6 @@ LeaderboardController.cs
 # Системные файлы ОС
 .DS_Store
 Thumbs.db
+
+# Личные заметки
 идеи.txt
