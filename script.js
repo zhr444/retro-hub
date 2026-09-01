@@ -2,7 +2,7 @@
     'use strict';
 
     const API_BASE = 'http://localhost:5103/api';
-    const HUB_URL = 'http://localhost:5103/gamehub'; // URL для локального SignalR
+    const HUB_URL = 'http://localhost:5103/gamehub'; 
 
     // =========================================
     // 1. АУДИО ДВИЖОК
@@ -51,6 +51,10 @@
                 osc.type = 'sawtooth'; osc.frequency.setValueAtTime(100, now); osc.frequency.exponentialRampToValueAtTime(10, now + 0.5);
                 gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
                 osc.start(now); osc.stop(now + 0.5);
+            } else if (type === 'card') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+                gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now); osc.stop(now + 0.05);
             }
         }
     };
@@ -60,7 +64,7 @@
     // =========================================
     const translations = {
         en: {
-            hubTitle: "🎮 Retro Hub", chooseGame: "Choose a game:", backBtn: "⬅ Back to Menu", restart: "Restart", cancel: "Cancel", pause: "Pause", resume: "Resume",
+            hubTitle: "🎮 Retro Hub", chooseGame: "Choose a game:", backBtn: "⬅ Back to Menu", restart: "Restart", cancel: "Cancel", pause: "Pause", resume: "Resume", moves: "Moves", time: "Time",
             tictactoe: "Tic-Tac-Toe", tictactoeDesc: "Play against computer or online", rps: "Rock-Paper-Scissors", rpsDesc: "Play against computer",
             minesweeper: "Minesweeper", minesweeperDesc: "Classic logic puzzle", turnX: "Your turn (X)", turnO: "Computer's turn (O)", compThinking: "Computer is thinking...",
             winX: "You Win! 🎉", winO: "Computer Wins! 😢", draw: "It's a draw! 🤝", chooseWeapon: "Choose your weapon:", win: "You Win! 🎉", lose: "You Lose! 😢", tie: "It's a Tie! 🤝",
@@ -68,11 +72,12 @@
             flags: "Flags:", msWin: "You cleared the minefield! 🎉", msLose: "Boom! You hit a mine 💥", toggleMC: "MC Theme: OFF", toggleMCon: "MC Theme: ON",
             leaderboard: "🏆 Top Players", loading: "Loading...", noRecords: "No records yet.",
             snake: "Snake", snakeDesc: "Classic arcade", score: "Score", gameOver: "GAME OVER!",
-            tetris: "Tetris", tetrisDesc: "Classic block puzzle", nextPiece: "Next:", lines: "Lines", level: "Level",
-            allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows. Rows without empty spaces disappear.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate, accelerate down, or Hard Drop (Space).", rule3Title: "Scoring:", rule3Desc: "More lines = more points. Max 4 lines (Tetris).", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level and speed.", rule5Title: "Game Over:", rule5Desc: "Game ends when the grid fills to the top."
+            tetris: "Tetris", tetrisDesc: "Classic block puzzle", nextPiece: "Next:", lines: "Lines", level: "Level", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows. Rows without empty spaces disappear.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate, accelerate down, or Hard Drop (Space).", rule3Title: "Scoring:", rule3Desc: "More lines = more points. Max 4 lines (Tetris).", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level and speed.", rule5Title: "Game Over:", rule5Desc: "Game ends when the grid fills to the top.",
+            solitaire: "Solitaire", solitaireDesc: "Classic card game", solWin: "You Solved It! 🎉", solLose: "No more moves! Game Over 💀",
+            solRule1Title: "Goal:", solRule1Desc: "Move all cards to the 4 foundations (top right) from Ace to King by suit.", solRule2Title: "Tableau:", solRule2Desc: "Build down in alternating colors (red on black).", solRule3Title: "Stock:", solRule3Desc: "Click the deck (top left) to draw a new card.", solRule4Title: "Quick Move:", solRule4Desc: "Double-click a card to send it to a foundation automatically."
         },
         ru: {
-            hubTitle: "🎮 Ретро Хаб", chooseGame: "Выберите игру:", backBtn: "⬅ Назад в меню", restart: "Заново", cancel: "Отмена", pause: "Пауза", resume: "Продолжить",
+            hubTitle: "🎮 Ретро Хаб", chooseGame: "Выберите игру:", backBtn: "⬅ Назад в меню", restart: "Заново", cancel: "Отмена", pause: "Пауза", resume: "Продолжить", moves: "Ходы", time: "Время",
             tictactoe: "Крестики-нолики", tictactoeDesc: "Игра против ПК или онлайн", rps: "Камень-Ножницы-Бумага", rpsDesc: "Игра против ПК",
             minesweeper: "Сапер", minesweeperDesc: "Классическая головоломка", turnX: "Твой ход (X)", turnO: "Ход компьютера (O)", compThinking: "Компьютер думает...",
             winX: "Ты победил! 🎉", winO: "Компьютер победил! 😢", draw: "Ничья! 🤝", chooseWeapon: "Сделай выбор:", win: "Ты победил! 🎉", lose: "Ты проиграл! 😢", tie: "Ничья! 🤝",
@@ -80,17 +85,18 @@
             flags: "Флаги:", msWin: "Минное поле чисто! 🎉", msLose: "Бум! Ты подорвался 💥", toggleMC: "Тема MC: ВЫКЛ", toggleMCon: "Тема MC: ВКЛ",
             leaderboard: "🏆 Таблица рекордов", loading: "Загрузка...", noRecords: "Рекордов пока нет.",
             snake: "Змейка", snakeDesc: "Классическая аркада", score: "Счет", gameOver: "ИГРА ОКОНЧЕНА!",
-            tetris: "Тетрис", tetrisDesc: "Классическая головоломка", nextPiece: "Следующая:", lines: "Линии", level: "Уровень",
-            allowRotation: "Вращение фигур", rulesTitle: "Правила", rule1Title: "Цель:", rule1Desc: "Строить сплошные горизонтальные ряды из падающих блоков (они называются тетромино). Ряд без единой пустоты 'сжигается' (исчезает), освобождая место.", rule2Title: "Управление:", rule2Desc: "Пока фигура летит, ты можешь двигать её влево-вправо, вращать, а также ускорять падение (стрелка вниз) или мгновенно сбрасывать на дно (Пробел — это называется Hard Drop).", rule3Title: "Очки:", rule3Desc: "Чем больше линий ты сжигаешь за один бросок, тем больше очков. Максимум — 4 линии за раз (это делается только длинной прямой 'палкой'), этот прием так и называется — «Тетрис».", rule4Title: "Прогрессия (Сложность):", rule4Desc: "За каждые 10 сожженных линий повышается уровень. С каждым новым уровнем фигуры начинают падать быстрее.", rule5Title: "Game Over:", rule5Desc: "Игра заканчивается, когда стакан заполняется доверху, и для появления новой фигуры просто не остается места."
+            tetris: "Тетрис", tetrisDesc: "Классическая головоломка", nextPiece: "Следующая:", lines: "Линии", level: "Уровень", allowRotation: "Вращение фигур", rulesTitle: "Правила", rule1Title: "Цель:", rule1Desc: "Строить сплошные горизонтальные ряды из падающих блоков (они называются тетромино). Ряд без единой пустоты 'сжигается' (исчезает), освобождая место.", rule2Title: "Управление:", rule2Desc: "Пока фигура летит, ты можешь двигать её влево-вправо, вращать, а также ускорять падение (стрелка вниз) или мгновенно сбрасывать на дно (Пробел — это называется Hard Drop).", rule3Title: "Очки:", rule3Desc: "Чем больше линий ты сжигаешь за один бросок, тем больше очков. Максимум — 4 линии за раз (это делается только длинной прямой 'палкой'), этот прием так и называется — «Тетрис».", rule4Title: "Прогрессия (Сложность):", rule4Desc: "За каждые 10 сожженных линий повышается уровень. С каждым новым уровнем фигуры начинают падать быстрее.", rule5Title: "Game Over:", rule5Desc: "Игра заканчивается, когда стакан заполняется доверху, и для появления новой фигуры просто не остается места.",
+            solitaire: "Пасьянс", solitaireDesc: "Косынка (Классика)", solWin: "Пасьянс сошелся! 🎉", solLose: "Нет ходов! Игра окончена 💀",
+            solRule1Title: "Цель:", solRule1Desc: "Разложить все карты по мастям в 4 «Дома» (сверху справа) от Туза до Короля.", solRule2Title: "Стол:", solRule2Desc: "Карты кладутся по убыванию (от Короля к Двойке) с чередованием цвета (красная на черную).", solRule3Title: "Колода:", solRule3Desc: "Клик по колоде (слева сверху) выдает новую карту. Пустая колода обновляется кликом.", solRule4Title: "Быстрый ход:", solRule4Desc: "Двойной клик по карте автоматически отправляет её в «Дом»."
         },
-        es: { hubTitle: "🎮 Retro Hub", chooseGame: "Elige un juego:", backBtn: "⬅ Volver", restart: "Reiniciar", cancel: "Cancelar", pause: "Pausa", resume: "Reanudar", tictactoe: "Tres en raya", tictactoeDesc: "PC u online", rps: "Piedra, Papel, Tijera", rpsDesc: "Contra la PC", minesweeper: "Buscaminas", minesweeperDesc: "Puzle lógico", turnX: "Tu turno (X)", turnO: "Turno de PC (O)", compThinking: "Pensando...", winX: "¡Ganaste! 🎉", winO: "¡PC Gana! 😢", draw: "¡Empate! 🤝", chooseWeapon: "Elige tu arma:", win: "¡Ganaste! 🎉", lose: "¡Perdiste! 😢", tie: "¡Empate! 🤝", wins: "Victorias", losses: "Derrotas", draws: "Empates", easy: "PC (Fácil)", hard: "PC (Difícil)", online: "🌐 Online", searching: "Buscando...", opponentLeft: "Rival desconectado. ¡Ganas! 🎉", waitingTurn: "Turno del rival", yourTurn: "¡Tu turno!", flags: "Banderas:", msWin: "¡Limpiaste el campo! 🎉", msLose: "¡Boom! Mina 💥", toggleMC: "MC: OFF", toggleMCon: "MC: ON", leaderboard: "🏆 Mejores", loading: "Cargando...", noRecords: "Sin registros.", snake: "Serpiente", snakeDesc: "Arcade clásico", score: "Puntaje", gameOver: "¡TERMINADO!", tetris: "Tetris", tetrisDesc: "Puzle de bloques", nextPiece: "Sig.:", lines: "Líneas", level: "Nivel", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows. Rows without empty spaces disappear.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate, accelerate down, or Hard Drop (Space).", rule3Title: "Scoring:", rule3Desc: "More lines = more points. Max 4 lines (Tetris).", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level and speed.", rule5Title: "Game Over:", rule5Desc: "Game ends when the grid fills to the top." },
-        fr: { hubTitle: "🎮 Retro Hub", chooseGame: "Choisissez:", backBtn: "⬅ Retour", restart: "Recommencer", cancel: "Annuler", pause: "Pause", resume: "Reprendre", tictactoe: "Morpion", tictactoeDesc: "PC ou en ligne", rps: "Pierre-Papier-Ciseaux", rpsDesc: "Contre le PC", minesweeper: "Démineur", minesweeperDesc: "Jeu de logique", turnX: "A ton tour (X)", turnO: "Tour du PC (O)", compThinking: "Réfléchit...", winX: "Tu as gagné! 🎉", winO: "Le PC a gagné! 😢", draw: "Match nul! 🤝", chooseWeapon: "Arme:", win: "Gagné! 🎉", lose: "Perdu! 😢", tie: "Égalité! 🤝", wins: "Victoires", losses: "Défaites", draws: "Nuls", easy: "PC (Facile)", hard: "PC (Difficile)", online: "🌐 En ligne", searching: "Recherche...", opponentLeft: "Adversaire parti! Gagné! 🎉", waitingTurn: "Tour de l'adversaire", yourTurn: "A ton tour!", flags: "Drapeaux:", msWin: "Champ déminé! 🎉", msLose: "Boom! 💥", toggleMC: "MC: OFF", toggleMCon: "MC: ON", leaderboard: "🏆 Meilleurs", loading: "Chargement...", noRecords: "Aucun enregistrement.", snake: "Serpent", snakeDesc: "Arcade", score: "Score", gameOver: "FIN!", tetris: "Tetris", tetrisDesc: "Puzzle de blocs", nextPiece: "Suiv:", lines: "Lignes", level: "Niveau", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows. Rows without empty spaces disappear.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate, accelerate down, or Hard Drop (Space).", rule3Title: "Scoring:", rule3Desc: "More lines = more points. Max 4 lines (Tetris).", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level and speed.", rule5Title: "Game Over:", rule5Desc: "Game ends when the grid fills to the top." },
-        "zh-CN": { hubTitle: "🎮 复古游戏中心", chooseGame: "选择游戏:", backBtn: "⬅ 返回", restart: "重新开始", cancel: "取消", pause: "暂停", resume: "继续", tictactoe: "井字棋", tictactoeDesc: "单机或联机", rps: "石头剪刀布", rpsDesc: "人机对战", minesweeper: "扫雷", minesweeperDesc: "经典逻辑", turnX: "你的回合 (X)", turnO: "电脑回合 (O)", compThinking: "思考中...", winX: "你赢了! 🎉", winO: "电脑赢了! 😢", draw: "平局! 🤝", chooseWeapon: "选择武器:", win: "你赢了! 🎉", lose: "你输了! 😢", tie: "平局! 🤝", wins: "胜", losses: "负", draws: "平", easy: "简单", hard: "困难", online: "🌐 联机对战", searching: "寻找对手...", opponentLeft: "对手退出! 你赢了! 🎉", waitingTurn: "等待对手...", yourTurn: "你的回合!", flags: "旗帜:", msWin: "过关! 🎉", msLose: "砰！💥", toggleMC: "MC: 关", toggleMCon: "MC: 开", leaderboard: "🏆 排行榜", loading: "加载中...", noRecords: "暂无记录.", snake: "贪吃蛇", snakeDesc: "街机", score: "分数", gameOver: "游戏结束!", tetris: "俄罗斯方块", tetrisDesc: "经典方块", nextPiece: "下一个:", lines: "行数", level: "等级", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows. Rows without empty spaces disappear.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate, accelerate down, or Hard Drop (Space).", rule3Title: "Scoring:", rule3Desc: "More lines = more points. Max 4 lines (Tetris).", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level and speed.", rule5Title: "Game Over:", rule5Desc: "Game ends when the grid fills to the top." },
-        "zh-TW": { hubTitle: "🎮 復古遊戲中心", chooseGame: "選擇遊戲:", backBtn: "⬅ 返回", restart: "重新開始", cancel: "取消", pause: "暫停", resume: "繼續", tictactoe: "井字棋", tictactoeDesc: "單機或聯機", rps: "石頭剪刀布", rpsDesc: "人機對戰", minesweeper: "踩地雷", minesweeperDesc: "經典邏輯", turnX: "你的回合 (X)", turnO: "電腦回合 (O)", compThinking: "思考中...", winX: "你贏了! 🎉", winO: "電腦贏了! 😢", draw: "平手! 🤝", chooseWeapon: "選擇武器:", win: "你贏了! 🎉", lose: "你輸了! 😢", tie: "平手! 🤝", wins: "勝", losses: "負", draws: "平", easy: "簡單", hard: "困難", online: "🌐 聯機對戰", searching: "尋找對手...", opponentLeft: "對手退出! 你贏了! 🎉", waitingTurn: "等待對手...", yourTurn: "你的回合!", flags: "旗幟:", msWin: "過關! 🎉", msLose: "砰！💥", toggleMC: "MC: 關", toggleMCon: "MC: 開", leaderboard: "🏆 排行榜", loading: "加載中...", noRecords: "暫無記錄.", snake: "貪吃蛇", snakeDesc: "街機", score: "分數", gameOver: "遊戲結束!", tetris: "俄羅斯方塊", tetrisDesc: "經典方塊", nextPiece: "下一個:", lines: "行數", level: "等級", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows. Rows without empty spaces disappear.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate, accelerate down, or Hard Drop (Space).", rule3Title: "Scoring:", rule3Desc: "More lines = more points. Max 4 lines (Tetris).", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level and speed.", rule5Title: "Game Over:", rule5Desc: "Game ends when the grid fills to the top." },
-        kk: { hubTitle: "🎮 Ретро Хаб", chooseGame: "Ойынды таңдаңыз:", backBtn: "⬅ Қайту", restart: "Қайта бастау", cancel: "Болдырмау", pause: "Үзіліс", resume: "Жалғастыру", tictactoe: "Крестик-нолик", tictactoeDesc: "ДК немесе онлайн", rps: "Тас-Қайшы-Қағаз", rpsDesc: "ДК қарсы", minesweeper: "Сапер", minesweeperDesc: "Логикалық", turnX: "Сенің жүрісің (X)", turnO: "ДК жүрісі (O)", compThinking: "Ойлануда...", winX: "Жеңдің! 🎉", winO: "ДК жеңді! 😢", draw: "Тең! 🤝", chooseWeapon: "Таңдау жаса:", win: "Жеңдің! 🎉", lose: "Ұтылдың! 😢", tie: "Тең! 🤝", wins: "Жеңістер", losses: "Жеңілістер", draws: "Тең", easy: "Оңай", hard: "Қиын", online: "🌐 Онлайн", searching: "Іздеу...", opponentLeft: "Қарсылас шықты! 🎉", waitingTurn: "Қарсылас жүрісі", yourTurn: "Сенің жүрісің!", flags: "Жалаулар:", msWin: "Тазарттың! 🎉", msLose: "Бум! 💥", toggleMC: "MC: ӨШУЛІ", toggleMCon: "MC: ҚОСУЛЫ", leaderboard: "🏆 Рекордтар", loading: "Жүктелуде...", noRecords: "Жазбалар жоқ.", snake: "Жылан", snakeDesc: "Аркада", score: "Есеп", gameOver: "АЯҚТАЛДЫ!", tetris: "Тетрис", tetrisDesc: "Блоктар", nextPiece: "Келесі:", lines: "Жолдар", level: "Деңгей", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows. Rows without empty spaces disappear.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate, accelerate down, or Hard Drop (Space).", rule3Title: "Scoring:", rule3Desc: "More lines = more points. Max 4 lines (Tetris).", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level and speed.", rule5Title: "Game Over:", rule5Desc: "Game ends when the grid fills to the top." },
-        be: { hubTitle: "🎮 Рэтра Хаб", chooseGame: "Выберыце:", backBtn: "⬅ Назад", restart: "Нанова", cancel: "Адмена", pause: "Паўза", resume: "Працягнуць", tictactoe: "Крыжыкі-нолікі", tictactoeDesc: "ПК або анлайн", rps: "Камень-Нажніцы-Папера", rpsDesc: "Супраць ПК", minesweeper: "Сапёр", minesweeperDesc: "Галаваломка", turnX: "Твой ход (X)", turnO: "Ход ПК (O)", compThinking: "Думае...", winX: "Перамог! 🎉", winO: "ПК перамог! 😢", draw: "Нічыя! 🤝", chooseWeapon: "Выбар:", win: "Перамог! 🎉", lose: "Прайграў! 😢", tie: "Нічыя! 🤝", wins: "Перамогі", losses: "Паражэнні", draws: "Нічыі", easy: "Лёгка", hard: "Складана", online: "🌐 Анлайн", searching: "Пошук...", opponentLeft: "Праціўнік выйшаў! 🎉", waitingTurn: "Ход праціўніка", yourTurn: "Твой ход!", flags: "Сцяжкі:", msWin: "Чыста! 🎉", msLose: "Бум! 💥", toggleMC: "MC: ВЫКЛ", toggleMCon: "MC: УКЛ", leaderboard: "🏆 Рэкорды", loading: "Загрузка...", noRecords: "Няма рэкордаў.", snake: "Змейка", snakeDesc: "Аркада", score: "Лік", gameOver: "СКОНЧАНА!", tetris: "Тэтрыс", tetrisDesc: "Галаваломка", nextPiece: "Наступная:", lines: "Лініі", level: "Узровень", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows. Rows without empty spaces disappear.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate, accelerate down, or Hard Drop (Space).", rule3Title: "Scoring:", rule3Desc: "More lines = more points. Max 4 lines (Tetris).", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level and speed.", rule5Title: "Game Over:", rule5Desc: "Game ends when the grid fills to the top." },
-        uk: { hubTitle: "🎮 Ретро Хаб", chooseGame: "Оберіть гру:", backBtn: "⬅ Назад", restart: "Заново", cancel: "Скасувати", pause: "Пауза", resume: "Продовжити", tictactoe: "Хрестики-нулики", tictactoeDesc: "ПК або онлайн", rps: "Камінь-Ножиці-Папір", rpsDesc: "Проти ПК", minesweeper: "Сапер", minesweeperDesc: "Головоломка", turnX: "Твій хід (X)", turnO: "Хід ПК (O)", compThinking: "Думає...", winX: "Перемога! 🎉", winO: "ПК переміг! 😢", draw: "Нічия! 🤝", chooseWeapon: "Вибір:", win: "Перемога! 🎉", lose: "Поразка! 😢", tie: "Нічия! 🤝", wins: "Перемоги", losses: "Поразки", draws: "Нічиї", easy: "Легко", hard: "Складно", online: "🌐 Онлайн", searching: "Пошук...", opponentLeft: "Суперник вийшов! 🎉", waitingTurn: "Хід суперника", yourTurn: "Твій хід!", flags: "Прапорці:", msWin: "Чисто! 🎉", msLose: "Бум! 💥", toggleMC: "MC: ВИМК", toggleMCon: "MC: УВІМК", leaderboard: "🏆 Рекорди", loading: "Завантаження...", noRecords: "Немає записів.", snake: "Змійка", snakeDesc: "Аркада", score: "Рахунок", gameOver: "КІНЕЦЬ!", tetris: "Тетріс", tetrisDesc: "Головоломка", nextPiece: "Наступна:", lines: "Лінії", level: "Рівень", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows. Rows without empty spaces disappear.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate, accelerate down, or Hard Drop (Space).", rule3Title: "Scoring:", rule3Desc: "More lines = more points. Max 4 lines (Tetris).", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level and speed.", rule5Title: "Game Over:", rule5Desc: "Game ends when the grid fills to the top." },
-        uz: { hubTitle: "🎮 Retro Xab", chooseGame: "Tanlang:", backBtn: "⬅ Orqaga", restart: "Qayta", cancel: "Bekor qilish", pause: "Pauza", resume: "Davom etish", tictactoe: "Tik-tak-toe", tictactoeDesc: "PK yoki onlayn", rps: "Tosh-Qaychi-Qog'oz", rpsDesc: "PK ga qarshi", minesweeper: "Sapyol", minesweeperDesc: "Boshqotirma", turnX: "Siz (X)", turnO: "PK (O)", compThinking: "O'ylamoqda...", winX: "Yutdingiz! 🎉", winO: "PK yutdi! 😢", draw: "Durang! 🤝", chooseWeapon: "Tanlov:", win: "Yutdingiz! 🎉", lose: "Yutqazdingiz! 😢", tie: "Durang! 🤝", wins: "G'alaba", losses: "Mag'lubiyat", draws: "Durang", easy: "Oson", hard: "Qiyin", online: "🌐 Onlayn", searching: "Qidirilmoqda...", opponentLeft: "Raqib chiqdi! 🎉", waitingTurn: "Raqib navbati", yourTurn: "Sizning navbatingiz!", flags: "Bayroqlar:", msWin: "Tozalandi! 🎉", msLose: "Bum! 💥", toggleMC: "MC: O'CHIQ", toggleMCon: "MC: YONIQ", leaderboard: "🏆 Rekordlar", loading: "Yuklanmoqda...", noRecords: "Yozuvlar yo'q.", snake: "Ilon", snakeDesc: "Arkada", score: "Hisob", gameOver: "TUGADI!", tetris: "Tetris", tetrisDesc: "Boshqotirma", nextPiece: "Keyingisi:", lines: "Qatorlar", level: "Daraja", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows. Rows without empty spaces disappear.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate, accelerate down, or Hard Drop (Space).", rule3Title: "Scoring:", rule3Desc: "More lines = more points. Max 4 lines (Tetris).", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level and speed.", rule5Title: "Game Over:", rule5Desc: "Game ends when the grid fills to the top." }
+        es: { hubTitle: "🎮 Retro Hub", chooseGame: "Elige un juego:", backBtn: "⬅ Volver", restart: "Reiniciar", cancel: "Cancelar", pause: "Pausa", resume: "Reanudar", moves: "Mov.", time: "Tiempo", tictactoe: "Tres en raya", tictactoeDesc: "PC u online", rps: "Piedra, Papel, Tijera", rpsDesc: "Contra la PC", minesweeper: "Buscaminas", minesweeperDesc: "Puzle lógico", turnX: "Tu turno (X)", turnO: "Turno de PC (O)", compThinking: "Pensando...", winX: "¡Ganaste! 🎉", winO: "¡PC Gana! 😢", draw: "¡Empate! 🤝", chooseWeapon: "Elige tu arma:", win: "¡Ganaste! 🎉", lose: "¡Perdiste! 😢", tie: "¡Empate! 🤝", wins: "Victorias", losses: "Derrotas", draws: "Empates", easy: "PC (Fácil)", hard: "PC (Difícil)", online: "🌐 Online", searching: "Buscando...", opponentLeft: "Rival desconectado. ¡Ganas! 🎉", waitingTurn: "Turno del rival", yourTurn: "¡Tu turno!", flags: "Banderas:", msWin: "¡Limpiaste el campo! 🎉", msLose: "¡Boom! Mina 💥", toggleMC: "MC: OFF", toggleMCon: "MC: ON", leaderboard: "🏆 Mejores", loading: "Cargando...", noRecords: "Sin registros.", snake: "Serpiente", snakeDesc: "Arcade clásico", score: "Puntaje", gameOver: "¡TERMINADO!", tetris: "Tetris", tetrisDesc: "Puzle de bloques", nextPiece: "Sig.:", lines: "Líneas", level: "Nivel", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Solitario", solitaireDesc: "Clásico", solWin: "¡Resuelto! 🎉", solLose: "¡Sin movimientos! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." },
+        fr: { hubTitle: "🎮 Retro Hub", chooseGame: "Choisissez:", backBtn: "⬅ Retour", restart: "Recommencer", cancel: "Annuler", pause: "Pause", resume: "Reprendre", moves: "Coups", time: "Temps", tictactoe: "Morpion", tictactoeDesc: "PC ou en ligne", rps: "Pierre-Papier-Ciseaux", rpsDesc: "Contre le PC", minesweeper: "Démineur", minesweeperDesc: "Jeu de logique", turnX: "A ton tour (X)", turnO: "Tour du PC (O)", compThinking: "Réfléchit...", winX: "Tu as gagné! 🎉", winO: "Le PC a gagné! 😢", draw: "Match nul! 🤝", chooseWeapon: "Arme:", win: "Gagné! 🎉", lose: "Perdu! 😢", tie: "Égalité! 🤝", wins: "Victoires", losses: "Défaites", draws: "Nuls", easy: "PC (Facile)", hard: "PC (Difficile)", online: "🌐 En ligne", searching: "Recherche...", opponentLeft: "Adversaire parti! Gagné! 🎉", waitingTurn: "Tour de l'adversaire", yourTurn: "A ton tour!", flags: "Drapeaux:", msWin: "Champ déminé! 🎉", msLose: "Boom! 💥", toggleMC: "MC: OFF", toggleMCon: "MC: ON", leaderboard: "🏆 Meilleurs", loading: "Chargement...", noRecords: "Aucun enregistrement.", snake: "Serpent", snakeDesc: "Arcade", score: "Score", gameOver: "FIN!", tetris: "Tetris", tetrisDesc: "Puzzle de blocs", nextPiece: "Suiv:", lines: "Lignes", level: "Niveau", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Solitaire", solitaireDesc: "Classique", solWin: "Gagné! 🎉", solLose: "Plus de coups! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." },
+        "zh-CN": { hubTitle: "🎮 复古游戏中心", chooseGame: "选择游戏:", backBtn: "⬅ 返回", restart: "重新开始", cancel: "取消", pause: "暂停", resume: "继续", moves: "步数", time: "时间", tictactoe: "井字棋", tictactoeDesc: "单机或联机", rps: "石头剪刀布", rpsDesc: "人机对战", minesweeper: "扫雷", minesweeperDesc: "经典逻辑", turnX: "你的回合 (X)", turnO: "电脑回合 (O)", compThinking: "思考中...", winX: "你赢了! 🎉", winO: "电脑赢了! 😢", draw: "平局! 🤝", chooseWeapon: "选择武器:", win: "你赢了! 🎉", lose: "你输了! 😢", tie: "平局! 🤝", wins: "胜", losses: "负", draws: "平", easy: "简单", hard: "困难", online: "🌐 联机对战", searching: "寻找对手...", opponentLeft: "对手退出! 你赢了! 🎉", waitingTurn: "等待对手...", yourTurn: "你的回合!", flags: "旗帜:", msWin: "过关! 🎉", msLose: "砰！💥", toggleMC: "MC: 关", toggleMCon: "MC: 开", leaderboard: "🏆 排行榜", loading: "加载中...", noRecords: "暂无记录.", snake: "贪吃蛇", snakeDesc: "街机", score: "分数", gameOver: "游戏结束!", tetris: "俄罗斯方块", tetrisDesc: "经典方块", nextPiece: "下一个:", lines: "行数", level: "等级", allowRotation: "旋转", rulesTitle: "规则", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "纸牌", solitaireDesc: "经典", solWin: "过关! 🎉", solLose: "没有移动了! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." },
+        "zh-TW": { hubTitle: "🎮 復古遊戲中心", chooseGame: "選擇遊戲:", backBtn: "⬅ 返回", restart: "重新開始", cancel: "取消", pause: "暫停", resume: "繼續", moves: "步數", time: "時間", tictactoe: "井字棋", tictactoeDesc: "單機或聯機", rps: "石頭剪刀布", rpsDesc: "人機對戰", minesweeper: "踩地雷", minesweeperDesc: "經典邏輯", turnX: "你的回合 (X)", turnO: "電腦回合 (O)", compThinking: "思考中...", winX: "你贏了! 🎉", winO: "電腦贏了! 😢", draw: "平手! 🤝", chooseWeapon: "選擇武器:", win: "你贏了! 🎉", lose: "你輸了! 😢", tie: "平手! 🤝", wins: "勝", losses: "負", draws: "平", easy: "簡單", hard: "困難", online: "🌐 聯機對戰", searching: "尋找對手...", opponentLeft: "對手退出! 你贏了! 🎉", waitingTurn: "等待對手...", yourTurn: "你的回合!", flags: "旗幟:", msWin: "過關! 🎉", msLose: "砰！💥", toggleMC: "MC: 關", toggleMCon: "MC: 開", leaderboard: "🏆 排行榜", loading: "加載中...", noRecords: "暫無記錄.", snake: "貪吃蛇", snakeDesc: "街機", score: "分數", gameOver: "遊戲結束!", tetris: "俄羅斯方塊", tetrisDesc: "經典方塊", nextPiece: "下一個:", lines: "行數", level: "等級", allowRotation: "旋轉", rulesTitle: "規則", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "接龍", solitaireDesc: "經典", solWin: "過關! 🎉", solLose: "沒有移動了! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." },
+        kk: { hubTitle: "🎮 Ретро Хаб", chooseGame: "Ойынды таңдаңыз:", backBtn: "⬅ Қайту", restart: "Қайта бастау", cancel: "Болдырмау", pause: "Үзіліс", resume: "Жалғастыру", moves: "Қадам", time: "Уақыт", tictactoe: "Крестик-нолик", tictactoeDesc: "ДК немесе онлайн", rps: "Тас-Қайшы-Қағаз", rpsDesc: "ДК қарсы", minesweeper: "Сапер", minesweeperDesc: "Логикалық", turnX: "Сенің жүрісің (X)", turnO: "ДК жүрісі (O)", compThinking: "Ойлануда...", winX: "Жеңдің! 🎉", winO: "ДК жеңді! 😢", draw: "Тең! 🤝", chooseWeapon: "Таңдау жаса:", win: "Жеңдің! 🎉", lose: "Ұтылдың! 😢", tie: "Тең! 🤝", wins: "Жеңістер", losses: "Жеңілістер", draws: "Тең", easy: "Оңай", hard: "Қиын", online: "🌐 Онлайн", searching: "Іздеу...", opponentLeft: "Қарсылас шықты! 🎉", waitingTurn: "Қарсылас жүрісі", yourTurn: "Сенің жүрісің!", flags: "Жалаулар:", msWin: "Тазарттың! 🎉", msLose: "Бум! 💥", toggleMC: "MC: ӨШУЛІ", toggleMCon: "MC: ҚОСУЛЫ", leaderboard: "🏆 Рекордтар", loading: "Жүктелуде...", noRecords: "Жазбалар жоқ.", snake: "Жылан", snakeDesc: "Аркада", score: "Есеп", gameOver: "АЯҚТАЛДЫ!", tetris: "Тетрис", tetrisDesc: "Блоктар", nextPiece: "Келесі:", lines: "Жолдар", level: "Деңгей", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Пасьянс", solitaireDesc: "Карта", solWin: "Жеңдің! 🎉", solLose: "Қадам жоқ! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." },
+        be: { hubTitle: "🎮 Рэтра Хаб", chooseGame: "Выберыце:", backBtn: "⬅ Назад", restart: "Нанова", cancel: "Адмена", pause: "Паўза", resume: "Працягнуць", moves: "Хады", time: "Час", tictactoe: "Крыжыкі-нолікі", tictactoeDesc: "ПК або анлайн", rps: "Камень-Нажніцы-Папера", rpsDesc: "Супраць ПК", minesweeper: "Сапёр", minesweeperDesc: "Галаваломка", turnX: "Твой ход (X)", turnO: "Ход ПК (O)", compThinking: "Думае...", winX: "Перамог! 🎉", winO: "ПК перамог! 😢", draw: "Нічыя! 🤝", chooseWeapon: "Выбар:", win: "Перамог! 🎉", lose: "Прайграў! 😢", tie: "Нічыя! 🤝", wins: "Перамогі", losses: "Паражэнні", draws: "Нічыі", easy: "Лёгка", hard: "Складана", online: "🌐 Анлайн", searching: "Пошук...", opponentLeft: "Праціўнік выйшаў! 🎉", waitingTurn: "Ход праціўніка", yourTurn: "Твой ход!", flags: "Сцяжкі:", msWin: "Чыста! 🎉", msLose: "Бум! 💥", toggleMC: "MC: ВЫКЛ", toggleMCon: "MC: УКЛ", leaderboard: "🏆 Рэкорды", loading: "Загрузка...", noRecords: "Няма рэкордаў.", snake: "Змейка", snakeDesc: "Аркада", score: "Лік", gameOver: "СКОНЧАНА!", tetris: "Тэтрыс", tetrisDesc: "Галаваломка", nextPiece: "Наступная:", lines: "Лініі", level: "Узровень", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Пасьянс", solitaireDesc: "Карты", solWin: "Перамога! 🎉", solLose: "Няма хадоў! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." },
+        uk: { hubTitle: "🎮 Ретро Хаб", chooseGame: "Оберіть гру:", backBtn: "⬅ Назад", restart: "Заново", cancel: "Скасувати", pause: "Пауза", resume: "Продовжити", moves: "Ходи", time: "Час", tictactoe: "Хрестики-нулики", tictactoeDesc: "ПК або онлайн", rps: "Камінь-Ножиці-Папір", rpsDesc: "Проти ПК", minesweeper: "Сапер", minesweeperDesc: "Головоломка", turnX: "Твій хід (X)", turnO: "Хід ПК (O)", compThinking: "Думає...", winX: "Перемога! 🎉", winO: "ПК переміг! 😢", draw: "Нічия! 🤝", chooseWeapon: "Вибір:", win: "Перемога! 🎉", lose: "Поразка! 😢", tie: "Нічия! 🤝", wins: "Перемоги", losses: "Поразки", draws: "Нічиї", easy: "Легко", hard: "Складно", online: "🌐 Онлайн", searching: "Пошук...", opponentLeft: "Суперник вийшов! 🎉", waitingTurn: "Хід суперника", yourTurn: "Твій хід!", flags: "Прапорці:", msWin: "Чисто! 🎉", msLose: "Бум! 💥", toggleMC: "MC: ВИМК", toggleMCon: "MC: УВІМК", leaderboard: "🏆 Рекорди", loading: "Завантаження...", noRecords: "Немає записів.", snake: "Змійка", snakeDesc: "Аркада", score: "Рахунок", gameOver: "КІНЕЦЬ!", tetris: "Тетріс", tetrisDesc: "Головоломка", nextPiece: "Наступна:", lines: "Лінії", level: "Рівень", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Пасьянс", solitaireDesc: "Карти", solWin: "Перемога! 🎉", solLose: "Немає ходів! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." },
+        uz: { hubTitle: "🎮 Retro Xab", chooseGame: "Tanlang:", backBtn: "⬅ Orqaga", restart: "Qayta", cancel: "Bekor qilish", pause: "Pauza", resume: "Davom etish", moves: "Yurishlar", time: "Vaqt", tictactoe: "Tik-tak-toe", tictactoeDesc: "PK yoki onlayn", rps: "Tosh-Qaychi-Qog'oz", rpsDesc: "PK ga qarshi", minesweeper: "Sapyol", minesweeperDesc: "Boshqotirma", turnX: "Siz (X)", turnO: "PK (O)", compThinking: "O'ylamoqda...", winX: "Yutdingiz! 🎉", winO: "PK yutdi! 😢", draw: "Durang! 🤝", chooseWeapon: "Tanlov:", win: "Yutdingiz! 🎉", lose: "Yutqazdingiz! 😢", tie: "Durang! 🤝", wins: "G'alaba", losses: "Mag'lubiyat", draws: "Durang", easy: "Oson", hard: "Qiyin", online: "🌐 Onlayn", searching: "Qidirilmoqda...", opponentLeft: "Raqib chiqdi! 🎉", waitingTurn: "Raqib navbati", yourTurn: "Sizning navbatingiz!", flags: "Bayroqlar:", msWin: "Tozalandi! 🎉", msLose: "Bum! 💥", toggleMC: "MC: O'CHIQ", toggleMCon: "MC: YONIQ", leaderboard: "🏆 Rekordlar", loading: "Yuklanmoqda...", noRecords: "Yozuvlar yo'q.", snake: "Ilon", snakeDesc: "Arkada", score: "Hisob", gameOver: "TUGADI!", tetris: "Tetris", tetrisDesc: "Boshqotirma", nextPiece: "Keyingisi:", lines: "Qatorlar", level: "Daraja", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Pasyans", solitaireDesc: "Kartalar", solWin: "Yutdingiz! 🎉", solLose: "Yurishlar yo'q! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." }
     };
 
     // =========================================
@@ -372,6 +378,7 @@
         else if (gameId === 'minesweeper') activeGameInstance = initMinesweeper();
         else if (gameId === 'snake') activeGameInstance = initSnake();
         else if (gameId === 'tetris') activeGameInstance = initTetris();
+        else if (gameId === 'solitaire') activeGameInstance = initSolitaire();
     }
 
     // =========================================
@@ -805,7 +812,7 @@
     }
 
     // =========================================
-    // 11. ИГРА 5: ТЕТРИС (Tetris) - Улучшенный 3D + Правила
+    // 11. ИГРА 5: ТЕТРИС (Tetris)
     // =========================================
     function initTetris() {
         gameContainer.innerHTML = `
@@ -840,7 +847,7 @@
                     <button id="tetris-start-btn" class="btn-small" style="width:100%; padding:10px; margin-top:10px;" data-i18n="restart">Start</button>
                     <button id="tetris-pause-btn" class="btn-small" style="width:100%; padding:10px; margin-top:10px;" data-i18n="pause" disabled>Pause</button>
 
-                    <details class="tetris-rules">
+                    <details class="game-rules">
                         <summary data-i18n="rulesTitle">Правила</summary>
                         <div class="rules-content">
                             <p><strong data-i18n="rule1Title">Цель:</strong> <span data-i18n="rule1Desc">...</span></p>
@@ -1036,10 +1043,7 @@
             else if (event.key === 'ArrowRight' || event.key === 'd') playerMove(1);
             else if (event.key === 'ArrowDown' || event.key === 's') playerDrop();
             else if (event.key === 'ArrowUp' || event.key === 'w') {
-                // Проверка на то, включено ли вращение фигур
-                if (rotationToggle && rotationToggle.checked) {
-                    playerRotate(1);
-                }
+                if (rotationToggle && rotationToggle.checked) playerRotate(1);
             }
             else if (event.key === ' ') {
                 while (!collide(arena, player)) { player.pos.y++; }
@@ -1067,6 +1071,407 @@
             updateTexts: () => updateLanguage(),
             getStats: () => ({ w: player.score }),
             destroy: () => { cancelAnimationFrame(animationId); document.removeEventListener('keydown', keydownHandler); }
+        };
+    }
+
+    // =========================================
+    // 12. ИГРА 6: ПАСЬЯНС (Косынка / Klondike)
+    // =========================================
+    function initSolitaire() {
+        gameContainer.innerHTML = `
+            <div class="game-top-bar" style="max-width: 700px;">
+                <div class="scoreboard">
+                    <div class="score-item score-w"><span data-i18n="moves">Moves</span>: <span id="solMoves" class="val">0</span></div>
+                    <div class="score-item score-d"><span data-i18n="time">Time</span>: <span id="solTime" class="val">0:00</span></div>
+                </div>
+                <button id="solRestart" class="restart-btn" style="margin-top:0; width:auto;" data-i18n="restart">Restart</button>
+            </div>
+            
+            <div class="game-status win" id="solStatus" style="display:none; width:100%; max-width:700px;" data-i18n="solWin">You Solved It! 🎉</div>
+
+            <div class="solitaire-board" id="solBoard">
+                <!-- Верхний ряд: Колода, Отбой, пусто, 4 Дома -->
+                <div class="sol-row solitaire-top">
+                    <div class="sol-col" id="sol-stock"></div>
+                    <div class="sol-col" id="sol-waste"></div>
+                    <div class="sol-col" style="border:none; background:none;"></div>
+                    <div class="sol-col" id="sol-found-0"></div>
+                    <div class="sol-col" id="sol-found-1"></div>
+                    <div class="sol-col" id="sol-found-2"></div>
+                    <div class="sol-col" id="sol-found-3"></div>
+                </div>
+                <!-- Нижний ряд: 7 игровых колонок -->
+                <div class="sol-row solitaire-bottom" style="margin-top:20px;">
+                    <div class="sol-col" id="sol-tab-0"></div>
+                    <div class="sol-col" id="sol-tab-1"></div>
+                    <div class="sol-col" id="sol-tab-2"></div>
+                    <div class="sol-col" id="sol-tab-3"></div>
+                    <div class="sol-col" id="sol-tab-4"></div>
+                    <div class="sol-col" id="sol-tab-5"></div>
+                    <div class="sol-col" id="sol-tab-6"></div>
+                </div>
+
+                <!-- Правила Пасьянса -->
+                <details class="game-rules" style="margin-top: 30px;">
+                    <summary data-i18n="rulesTitle">Правила</summary>
+                    <div class="rules-content">
+                        <p><strong data-i18n="solRule1Title">Цель:</strong> <span data-i18n="solRule1Desc">...</span></p>
+                        <p><strong data-i18n="solRule2Title">Стол:</strong> <span data-i18n="solRule2Desc">...</span></p>
+                        <p><strong data-i18n="solRule3Title">Колода:</strong> <span data-i18n="solRule3Desc">...</span></p>
+                        <p><strong data-i18n="solRule4Title">Быстрый ход:</strong> <span data-i18n="solRule4Desc">...</span></p>
+                    </div>
+                </details>
+            </div>
+        `;
+        updateLanguage();
+
+        const suits = ['♥', '♦', '♣', '♠'];
+        const values = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        
+        let deck = [];
+        let state = { stock: [], waste: [], foundations: [[], [], [], []], tableau: [[], [], [], [], [], [], []] };
+        
+        let moves = 0;
+        let timerSeconds = 0;
+        let timerInterval = null;
+        let isWon = false;
+        let isLost = false;
+        let stockCycles = 0;
+        
+        let selected = null;
+
+        function formatTime(sec) { const m = Math.floor(sec / 60); const s = sec % 60; return `${m}:${s < 10 ? '0' : ''}${s}`; }
+
+        function createDeck() {
+            deck = [];
+            for (let s of suits) {
+                for (let i = 0; i < values.length; i++) {
+                    deck.push({ suit: s, val: values[i], num: i + 1, color: (s === '♥' || s === '♦') ? 'red' : 'black', faceUp: false });
+                }
+            }
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+        }
+
+        function dealCards() {
+            state = { stock: [], waste: [], foundations: [[], [], [], []], tableau: [[], [], [], [], [], [], []] };
+            let cardIndex = 0;
+            for (let i = 0; i < 7; i++) {
+                for (let j = 0; j <= i; j++) {
+                    let card = deck[cardIndex++];
+                    if (j === i) card.faceUp = true;
+                    state.tableau[i].push(card);
+                }
+            }
+            while (cardIndex < deck.length) { state.stock.push(deck[cardIndex++]); }
+        }
+
+        function renderCard(card, pile, colIndex, cardIndex) {
+            const div = document.createElement('div');
+            div.className = `sol-card ${card.faceUp ? card.color : 'face-down'}`;
+            if (selected && selected.pile === pile && selected.col === colIndex && cardIndex >= selected.index) {
+                div.classList.add('selected');
+            }
+            
+            if (pile === 'tableau') {
+                let yOffset = 0;
+                for(let i = 0; i < cardIndex; i++) {
+                    yOffset += state.tableau[colIndex][i].faceUp ? 28 : 12;
+                }
+                div.style.top = `${yOffset}px`;
+            }
+
+            if (card.faceUp) {
+                div.innerHTML = `
+                    <div class="sol-card-inner">
+                        <div style="text-align:left;"><span class="sol-val">${card.val}</span><br><span class="sol-suit">${card.suit}</span></div>
+                        <div class="sol-center-suit">${card.suit}</div>
+                        <div style="text-align:right; transform:rotate(180deg);"><span class="sol-val">${card.val}</span><br><span class="sol-suit">${card.suit}</span></div>
+                    </div>
+                `;
+            }
+
+            div.addEventListener('click', (e) => { e.stopPropagation(); handleCardClick(pile, colIndex, cardIndex); });
+            div.addEventListener('dblclick', (e) => { e.stopPropagation(); handleDoubleClick(pile, colIndex, cardIndex); });
+            
+            return div;
+        }
+
+        function renderBoard() {
+            const stockEl = document.getElementById('sol-stock');
+            stockEl.innerHTML = '<div class="sol-slot"></div>';
+            if (state.stock.length > 0) {
+                const topStock = state.stock[state.stock.length - 1];
+                topStock.faceUp = false;
+                stockEl.appendChild(renderCard(topStock, 'stock', 0, state.stock.length - 1));
+            }
+            stockEl.onclick = () => handleStockClick();
+
+            const wasteEl = document.getElementById('sol-waste');
+            wasteEl.innerHTML = '<div class="sol-slot"></div>';
+            if (state.waste.length > 0) {
+                wasteEl.appendChild(renderCard(state.waste[state.waste.length - 1], 'waste', 0, state.waste.length - 1));
+            }
+            wasteEl.onclick = () => { if(selected) handleEmptySlotClick('waste', 0); };
+
+            for (let i = 0; i < 4; i++) {
+                const fEl = document.getElementById(`sol-found-${i}`);
+                fEl.innerHTML = '<div class="sol-slot"></div>';
+                if (state.foundations[i].length > 0) {
+                    fEl.appendChild(renderCard(state.foundations[i][state.foundations[i].length - 1], 'foundation', i, state.foundations[i].length - 1));
+                }
+                fEl.onclick = () => handleEmptySlotClick('foundation', i);
+            }
+
+            for (let i = 0; i < 7; i++) {
+                const tEl = document.getElementById(`sol-tab-${i}`);
+                tEl.innerHTML = '<div class="sol-slot"></div>';
+                state.tableau[i].forEach((card, idx) => {
+                    tEl.appendChild(renderCard(card, 'tableau', i, idx));
+                });
+                tEl.onclick = () => handleEmptySlotClick('tableau', i);
+            }
+
+            document.getElementById('solMoves').innerText = moves;
+            checkGameState();
+        }
+
+        function handleStockClick() {
+            if (isWon || isLost) return;
+            AudioEngine.play('card');
+            selected = null;
+            if (state.stock.length > 0) {
+                let card = state.stock.pop();
+                card.faceUp = true;
+                state.waste.push(card);
+            } else {
+                if (state.waste.length === 0) return; 
+                while (state.waste.length > 0) {
+                    let card = state.waste.pop();
+                    card.faceUp = false;
+                    state.stock.push(card);
+                }
+                stockCycles++;
+            }
+            moves++;
+            renderBoard();
+        }
+
+        function handleCardClick(pile, col, index) {
+            if (isWon || isLost) return;
+
+            // Если кликнули по карте в колоде - это должен быть клик по самой колоде (перехватываем клик)
+            if (pile === 'stock') {
+                handleStockClick();
+                return;
+            }
+
+            AudioEngine.play('pop');
+            let targetArray = getPileArray(pile, col);
+            let clickedCard = targetArray[index];
+
+            if (!clickedCard.faceUp) return;
+
+            if (!selected) {
+                selected = { pile, col, index };
+                renderBoard();
+                return;
+            }
+
+            if (selected.pile === pile && selected.col === col && selected.index === index) {
+                selected = null;
+                renderBoard();
+                return;
+            }
+
+            attemptMove(pile, col);
+        }
+
+        function handleEmptySlotClick(pile, col) {
+            if (!selected || isWon || isLost) return;
+            attemptMove(pile, col);
+        }
+
+        function handleDoubleClick(pile, col, index) {
+            if (isWon || isLost) return;
+            let targetArray = getPileArray(pile, col);
+            let clickedCard = targetArray[index];
+            if (!clickedCard.faceUp) return;
+            if (index !== targetArray.length - 1) return;
+
+            selected = { pile, col, index };
+            
+            for (let i = 0; i < 4; i++) {
+                if (isValidMove('foundation', i)) {
+                    executeMove('foundation', i);
+                    return;
+                }
+            }
+            selected = null;
+            renderBoard();
+        }
+
+        function getPileArray(pile, col) {
+            if (pile === 'waste') return state.waste;
+            if (pile === 'foundation') return state.foundations[col];
+            if (pile === 'tableau') return state.tableau[col];
+            return [];
+        }
+
+        function attemptMove(destPile, destCol) {
+            if (isValidMove(destPile, destCol)) {
+                executeMove(destPile, destCol);
+            } else {
+                let destArray = getPileArray(destPile, destCol);
+                if (destArray.length > 0 && destPile !== 'foundation') {
+                    selected = { pile: destPile, col: destCol, index: destArray.length - 1 };
+                } else {
+                    selected = null;
+                }
+                AudioEngine.play('move'); 
+                renderBoard();
+            }
+        }
+
+        function isValidMove(destPile, destCol) {
+            let sourceArray = getPileArray(selected.pile, selected.col);
+            let movingCard = sourceArray[selected.index];
+            let destArray = getPileArray(destPile, destCol);
+            let topDestCard = destArray.length > 0 ? destArray[destArray.length - 1] : null;
+
+            if (destPile === 'foundation') {
+                if (selected.index !== sourceArray.length - 1) return false;
+                if (!topDestCard) return movingCard.num === 1;
+                return movingCard.suit === topDestCard.suit && movingCard.num === topDestCard.num + 1;
+            }
+
+            if (destPile === 'tableau') {
+                if (!topDestCard) return movingCard.num === 13;
+                return movingCard.color !== topDestCard.color && movingCard.num === topDestCard.num - 1;
+            }
+            return false;
+        }
+
+        function executeMove(destPile, destCol) {
+            let sourceArray = getPileArray(selected.pile, selected.col);
+            let destArray = getPileArray(destPile, destCol);
+            
+            let cardsToMove = sourceArray.splice(selected.index, sourceArray.length - selected.index);
+            destArray.push(...cardsToMove);
+
+            if (selected.pile === 'tableau' && sourceArray.length > 0) {
+                if (!sourceArray[sourceArray.length - 1].faceUp) {
+                    sourceArray[sourceArray.length - 1].faceUp = true;
+                }
+            }
+
+            AudioEngine.play('card');
+            moves++;
+            stockCycles = 0; 
+            selected = null;
+            renderBoard();
+        }
+
+        function hasAvailableMoves() {
+            const originalSelected = selected;
+            let foundMove = false;
+
+            function checkCardMoves(pile, c, i) {
+                selected = { pile, col: c, index: i };
+                for (let f = 0; f < 4; f++) if (isValidMove('foundation', f)) return true;
+                for (let t = 0; t < 7; t++) if (isValidMove('tableau', t)) return true;
+                return false;
+            }
+
+            if (state.waste.length > 0) {
+                if (checkCardMoves('waste', 0, state.waste.length - 1)) foundMove = true;
+            }
+
+            if (!foundMove) {
+                for (let c = 0; c < 7; c++) {
+                    for (let i = 0; i < state.tableau[c].length; i++) {
+                        if (state.tableau[c][i].faceUp) {
+                            if (checkCardMoves('tableau', c, i)) { foundMove = true; break; }
+                        }
+                    }
+                    if(foundMove) break;
+                }
+            }
+
+            selected = originalSelected;
+            return foundMove;
+        }
+
+        function checkGameState() {
+            if (isWon || isLost) return;
+            
+            if (state.foundations.every(f => f.length === 13)) {
+                isWon = true;
+                clearInterval(timerInterval);
+                AudioEngine.play('win');
+                const statusEl = document.getElementById('solStatus');
+                statusEl.className = 'game-status win';
+                statusEl.innerText = getTranslation('solWin');
+                statusEl.style.display = 'block';
+                return;
+            }
+
+            let hasMoves = hasAvailableMoves();
+            let deadEnd = false;
+
+            if (state.stock.length === 0 && state.waste.length === 0 && !hasMoves) {
+                deadEnd = true;
+            } else if (stockCycles >= 2 && !hasMoves) {
+                deadEnd = true;
+            }
+
+            if (deadEnd) {
+                isLost = true;
+                clearInterval(timerInterval);
+                AudioEngine.play('lose');
+                const statusEl = document.getElementById('solStatus');
+                statusEl.className = 'game-status lose';
+                statusEl.innerText = getTranslation('solLose');
+                statusEl.style.display = 'block';
+            }
+        }
+
+        function startGame() {
+            clearInterval(timerInterval);
+            timerSeconds = 0;
+            moves = 0;
+            stockCycles = 0;
+            isWon = false;
+            isLost = false;
+            selected = null;
+            document.getElementById('solTime').innerText = "0:00";
+            document.getElementById('solStatus').style.display = 'none';
+            
+            createDeck();
+            dealCards();
+            renderBoard();
+            
+            timerInterval = setInterval(() => {
+                if(!isWon && !isLost) {
+                    timerSeconds++;
+                    document.getElementById('solTime').innerText = formatTime(timerSeconds);
+                }
+            }, 1000);
+        }
+
+        document.getElementById('solRestart').addEventListener('click', () => {
+            AudioEngine.play('pop');
+            startGame();
+        });
+
+        startGame();
+
+        return {
+            updateTexts: () => updateLanguage(),
+            getStats: () => ({ w: isWon ? 1 : 0 }), 
+            destroy: () => { clearInterval(timerInterval); }
         };
     }
 
