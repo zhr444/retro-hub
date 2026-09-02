@@ -4,18 +4,85 @@
     const API_BASE = 'http://localhost:5103/api';
     const HUB_URL = 'http://localhost:5103/gamehub'; 
 
+    // Глобальная переменная для анимаций
+    window.animEnabled = localStorage.getItem('hub_anim') !== 'off';
+
+    // Вспомогательная функция для тряски экрана (Juice effect)
+    function applyShake(ctx, shakeAmount) {
+        if (shakeAmount > 0 && window.animEnabled) {
+            ctx.save();
+            const dx = (Math.random() - 0.5) * shakeAmount;
+            const dy = (Math.random() - 0.5) * shakeAmount;
+            ctx.translate(dx, dy);
+            return true;
+        }
+        return false;
+    }
+
     // =========================================
-    // 1. АУДИО ДВИЖОК
+    // 1. АУДИО И МУЗЫКАЛЬНЫЙ ДВИЖОК
     // =========================================
     const AudioEngine = {
         ctx: null,
         enabled: localStorage.getItem('hub_sound') !== 'off',
+        
+        // Музыка
+        bgmCtx: null,
+        musicEnabled: localStorage.getItem('hub_music') !== 'off',
+        isPlayingBGM: false,
+        bgmTimeout: null,
+        
         init: function() {
             if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
             if (this.ctx.state === 'suspended') this.ctx.resume();
         },
-        toggle: function() {
+        toggleSound: function() {
             this.enabled = !this.enabled; localStorage.setItem('hub_sound', this.enabled ? 'on' : 'off'); return this.enabled;
+        },
+        toggleMusic: function() {
+            this.musicEnabled = !this.musicEnabled;
+            localStorage.setItem('hub_music', this.musicEnabled ? 'on' : 'off');
+            if (this.musicEnabled) this.playBGM(); else this.stopBGM();
+            return this.musicEnabled;
+        },
+        playBGM: function() {
+            if (!this.musicEnabled) return;
+            if (!this.bgmCtx) this.bgmCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (this.bgmCtx.state === 'suspended') this.bgmCtx.resume();
+            if (this.isPlayingBGM) return;
+
+            this.isPlayingBGM = true;
+            // Ретро 8-битный бас
+            const notes = [130.81, 196.00, 261.63, 196.00, 155.56, 196.00, 261.63, 196.00];
+            let noteIdx = 0;
+
+            const playNextNote = () => {
+                if (!this.isPlayingBGM) return;
+                const osc = this.bgmCtx.createOscillator();
+                const gain = this.bgmCtx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.value = notes[noteIdx];
+                
+                osc.connect(gain);
+                gain.connect(this.bgmCtx.destination);
+                
+                const now = this.bgmCtx.currentTime;
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.02, now + 0.05); // Плавное нарастание (низкая громкость)
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3); // Плавное затухание
+                
+                osc.start(now);
+                osc.stop(now + 0.3);
+                
+                noteIdx = (noteIdx + 1) % notes.length;
+                this.bgmTimeout = setTimeout(playNextNote, 300);
+            };
+            playNextNote();
+        },
+        stopBGM: function() {
+            this.isPlayingBGM = false;
+            if (this.bgmTimeout) clearTimeout(this.bgmTimeout);
         },
         play: function(type) {
             if (!this.enabled) return;
@@ -55,6 +122,10 @@
                 osc.type = 'sine'; osc.frequency.setValueAtTime(600, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
                 gain.gain.setValueAtTime(0.05, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
                 osc.start(now); osc.stop(now + 0.05);
+            } else if (type === 'shoot') {
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(900, now); osc.frequency.exponentialRampToValueAtTime(200, now + 0.1);
+                gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
             }
         }
     };
@@ -72,9 +143,11 @@
             flags: "Flags:", msWin: "You cleared the minefield! 🎉", msLose: "Boom! You hit a mine 💥", toggleMC: "MC Theme: OFF", toggleMCon: "MC Theme: ON",
             leaderboard: "🏆 Top Players", loading: "Loading...", noRecords: "No records yet.",
             snake: "Snake", snakeDesc: "Classic arcade", score: "Score", gameOver: "GAME OVER!",
-            tetris: "Tetris", tetrisDesc: "Classic block puzzle", nextPiece: "Next:", lines: "Lines", level: "Level", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows. Rows without empty spaces disappear.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate, accelerate down, or Hard Drop (Space).", rule3Title: "Scoring:", rule3Desc: "More lines = more points. Max 4 lines (Tetris).", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level and speed.", rule5Title: "Game Over:", rule5Desc: "Game ends when the grid fills to the top.",
+            tetris: "Tetris", tetrisDesc: "Classic block puzzle", nextPiece: "Next:", lines: "Lines", level: "Level", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate, accelerate down, or Hard Drop (Space).", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.",
             solitaire: "Solitaire", solitaireDesc: "Classic card game", solWin: "You Solved It! 🎉", solLose: "No more moves! Game Over 💀",
-            solRule1Title: "Goal:", solRule1Desc: "Move all cards to the 4 foundations (top right) from Ace to King by suit.", solRule2Title: "Tableau:", solRule2Desc: "Build down in alternating colors (red on black).", solRule3Title: "Stock:", solRule3Desc: "Click the deck (top left) to draw a new card.", solRule4Title: "Quick Move:", solRule4Desc: "Double-click a card to send it to a foundation automatically."
+            solRule1Title: "Goal:", solRule1Desc: "Move all cards to the 4 foundations (top right) from Ace to King by suit.", solRule2Title: "Tableau:", solRule2Desc: "Build down in alternating colors.", solRule3Title: "Stock:", solRule3Desc: "Click the deck to draw.", solRule4Title: "Quick Move:", solRule4Desc: "Double-click to foundation.",
+            tanks: "Battle City", tanksDesc: "Classic 1985 tank combat", tanksKills: "Enemies:", tanksBase: "Base:", tanksBaseAlive: "SECURE 🛡️", tanksBaseDead: "DESTROYED 💥",
+            tankRule1Title: "Goal:", tankRule1Desc: "Destroy all enemy tanks and defend your base (Eagle 🦅).", tankRule2Title: "Controls:", tankRule2Desc: "WASD / Arrows to move, Space to shoot.", tankRule3Title: "Blocks:", tankRule3Desc: "Brick walls can be destroyed, steel walls are unbreakable."
         },
         ru: {
             hubTitle: "🎮 Ретро Хаб", chooseGame: "Выберите игру:", backBtn: "⬅ Назад в меню", restart: "Заново", cancel: "Отмена", pause: "Пауза", resume: "Продолжить", moves: "Ходы", time: "Время",
@@ -85,18 +158,20 @@
             flags: "Флаги:", msWin: "Минное поле чисто! 🎉", msLose: "Бум! Ты подорвался 💥", toggleMC: "Тема MC: ВЫКЛ", toggleMCon: "Тема MC: ВКЛ",
             leaderboard: "🏆 Таблица рекордов", loading: "Загрузка...", noRecords: "Рекордов пока нет.",
             snake: "Змейка", snakeDesc: "Классическая аркада", score: "Счет", gameOver: "ИГРА ОКОНЧЕНА!",
-            tetris: "Тетрис", tetrisDesc: "Классическая головоломка", nextPiece: "Следующая:", lines: "Линии", level: "Уровень", allowRotation: "Вращение фигур", rulesTitle: "Правила", rule1Title: "Цель:", rule1Desc: "Строить сплошные горизонтальные ряды из падающих блоков (они называются тетромино). Ряд без единой пустоты 'сжигается' (исчезает), освобождая место.", rule2Title: "Управление:", rule2Desc: "Пока фигура летит, ты можешь двигать её влево-вправо, вращать, а также ускорять падение (стрелка вниз) или мгновенно сбрасывать на дно (Пробел — это называется Hard Drop).", rule3Title: "Очки:", rule3Desc: "Чем больше линий ты сжигаешь за один бросок, тем больше очков. Максимум — 4 линии за раз (это делается только длинной прямой 'палкой'), этот прием так и называется — «Тетрис».", rule4Title: "Прогрессия (Сложность):", rule4Desc: "За каждые 10 сожженных линий повышается уровень. С каждым новым уровнем фигуры начинают падать быстрее.", rule5Title: "Game Over:", rule5Desc: "Игра заканчивается, когда стакан заполняется доверху, и для появления новой фигуры просто не остается места.",
+            tetris: "Тетрис", tetrisDesc: "Классическая головоломка", nextPiece: "Следующая:", lines: "Линии", level: "Уровень", allowRotation: "Вращение фигур", rulesTitle: "Правила", rule1Title: "Цель:", rule1Desc: "Строить сплошные горизонтальные ряды из падающих блоков (тетромино).", rule2Title: "Управление:", rule2Desc: "Влево/вправо, вращение, ускорение падения или Hard Drop (Пробел).", rule3Title: "Очки:", rule3Desc: "Больше линий = больше очков. Максимум 4 линии («Тетрис»).", rule4Title: "Прогрессия:", rule4Desc: "Каждые 10 линий повышают уровень.", rule5Title: "Game Over:", rule5Desc: "Стакан заполнился доверху.",
             solitaire: "Пасьянс", solitaireDesc: "Косынка (Классика)", solWin: "Пасьянс сошелся! 🎉", solLose: "Нет ходов! Игра окончена 💀",
-            solRule1Title: "Цель:", solRule1Desc: "Разложить все карты по мастям в 4 «Дома» (сверху справа) от Туза до Короля.", solRule2Title: "Стол:", solRule2Desc: "Карты кладутся по убыванию (от Короля к Двойке) с чередованием цвета (красная на черную).", solRule3Title: "Колода:", solRule3Desc: "Клик по колоде (слева сверху) выдает новую карту. Пустая колода обновляется кликом.", solRule4Title: "Быстрый ход:", solRule4Desc: "Двойной клик по карте автоматически отправляет её в «Дом»."
+            solRule1Title: "Цель:", solRule1Desc: "Разложить все карты по мастям в 4 «Дома» (сверху справа) от Туза до Короля.", solRule2Title: "Стол:", solRule2Desc: "Карты кладутся по убыванию с чередованием цвета (красная на черную).", solRule3Title: "Колода:", solRule3Desc: "Клик по колоде (слева сверху) выдает новую карту.", solRule4Title: "Быстрый ход:", solRule4Desc: "Двойной клик по карте отправляет её в «Дом».",
+            tanks: "Танчики (1985)", tanksDesc: "Классический Battle City", tanksKills: "Враги:", tanksBase: "Штаб:", tanksBaseAlive: "ЦЕЛ 🛡️", tanksBaseDead: "УНИЧТОЖЕН 💥",
+            tankRule1Title: "Цель:", tankRule1Desc: "Уничтожить все танки противника и защитить штаб с Орлом 🦅.", tankRule2Title: "Управление:", tankRule2Desc: "Стрелки или WASD для движения, Пробел для выстрела.", tankRule3Title: "Блоки:", tankRule3Desc: "Кирпич разрушается выстрелом, стальные блоки непробиваемы."
         },
-        es: { hubTitle: "🎮 Retro Hub", chooseGame: "Elige un juego:", backBtn: "⬅ Volver", restart: "Reiniciar", cancel: "Cancelar", pause: "Pausa", resume: "Reanudar", moves: "Mov.", time: "Tiempo", tictactoe: "Tres en raya", tictactoeDesc: "PC u online", rps: "Piedra, Papel, Tijera", rpsDesc: "Contra la PC", minesweeper: "Buscaminas", minesweeperDesc: "Puzle lógico", turnX: "Tu turno (X)", turnO: "Turno de PC (O)", compThinking: "Pensando...", winX: "¡Ganaste! 🎉", winO: "¡PC Gana! 😢", draw: "¡Empate! 🤝", chooseWeapon: "Elige tu arma:", win: "¡Ganaste! 🎉", lose: "¡Perdiste! 😢", tie: "¡Empate! 🤝", wins: "Victorias", losses: "Derrotas", draws: "Empates", easy: "PC (Fácil)", hard: "PC (Difícil)", online: "🌐 Online", searching: "Buscando...", opponentLeft: "Rival desconectado. ¡Ganas! 🎉", waitingTurn: "Turno del rival", yourTurn: "¡Tu turno!", flags: "Banderas:", msWin: "¡Limpiaste el campo! 🎉", msLose: "¡Boom! Mina 💥", toggleMC: "MC: OFF", toggleMCon: "MC: ON", leaderboard: "🏆 Mejores", loading: "Cargando...", noRecords: "Sin registros.", snake: "Serpiente", snakeDesc: "Arcade clásico", score: "Puntaje", gameOver: "¡TERMINADO!", tetris: "Tetris", tetrisDesc: "Puzle de bloques", nextPiece: "Sig.:", lines: "Líneas", level: "Nivel", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Solitario", solitaireDesc: "Clásico", solWin: "¡Resuelto! 🎉", solLose: "¡Sin movimientos! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." },
-        fr: { hubTitle: "🎮 Retro Hub", chooseGame: "Choisissez:", backBtn: "⬅ Retour", restart: "Recommencer", cancel: "Annuler", pause: "Pause", resume: "Reprendre", moves: "Coups", time: "Temps", tictactoe: "Morpion", tictactoeDesc: "PC ou en ligne", rps: "Pierre-Papier-Ciseaux", rpsDesc: "Contre le PC", minesweeper: "Démineur", minesweeperDesc: "Jeu de logique", turnX: "A ton tour (X)", turnO: "Tour du PC (O)", compThinking: "Réfléchit...", winX: "Tu as gagné! 🎉", winO: "Le PC a gagné! 😢", draw: "Match nul! 🤝", chooseWeapon: "Arme:", win: "Gagné! 🎉", lose: "Perdu! 😢", tie: "Égalité! 🤝", wins: "Victoires", losses: "Défaites", draws: "Nuls", easy: "PC (Facile)", hard: "PC (Difficile)", online: "🌐 En ligne", searching: "Recherche...", opponentLeft: "Adversaire parti! Gagné! 🎉", waitingTurn: "Tour de l'adversaire", yourTurn: "A ton tour!", flags: "Drapeaux:", msWin: "Champ déminé! 🎉", msLose: "Boom! 💥", toggleMC: "MC: OFF", toggleMCon: "MC: ON", leaderboard: "🏆 Meilleurs", loading: "Chargement...", noRecords: "Aucun enregistrement.", snake: "Serpent", snakeDesc: "Arcade", score: "Score", gameOver: "FIN!", tetris: "Tetris", tetrisDesc: "Puzzle de blocs", nextPiece: "Suiv:", lines: "Lignes", level: "Niveau", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Solitaire", solitaireDesc: "Classique", solWin: "Gagné! 🎉", solLose: "Plus de coups! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." },
-        "zh-CN": { hubTitle: "🎮 复古游戏中心", chooseGame: "选择游戏:", backBtn: "⬅ 返回", restart: "重新开始", cancel: "取消", pause: "暂停", resume: "继续", moves: "步数", time: "时间", tictactoe: "井字棋", tictactoeDesc: "单机或联机", rps: "石头剪刀布", rpsDesc: "人机对战", minesweeper: "扫雷", minesweeperDesc: "经典逻辑", turnX: "你的回合 (X)", turnO: "电脑回合 (O)", compThinking: "思考中...", winX: "你赢了! 🎉", winO: "电脑赢了! 😢", draw: "平局! 🤝", chooseWeapon: "选择武器:", win: "你赢了! 🎉", lose: "你输了! 😢", tie: "平局! 🤝", wins: "胜", losses: "负", draws: "平", easy: "简单", hard: "困难", online: "🌐 联机对战", searching: "寻找对手...", opponentLeft: "对手退出! 你赢了! 🎉", waitingTurn: "等待对手...", yourTurn: "你的回合!", flags: "旗帜:", msWin: "过关! 🎉", msLose: "砰！💥", toggleMC: "MC: 关", toggleMCon: "MC: 开", leaderboard: "🏆 排行榜", loading: "加载中...", noRecords: "暂无记录.", snake: "贪吃蛇", snakeDesc: "街机", score: "分数", gameOver: "游戏结束!", tetris: "俄罗斯方块", tetrisDesc: "经典方块", nextPiece: "下一个:", lines: "行数", level: "等级", allowRotation: "旋转", rulesTitle: "规则", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "纸牌", solitaireDesc: "经典", solWin: "过关! 🎉", solLose: "没有移动了! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." },
-        "zh-TW": { hubTitle: "🎮 復古遊戲中心", chooseGame: "選擇遊戲:", backBtn: "⬅ 返回", restart: "重新開始", cancel: "取消", pause: "暫停", resume: "繼續", moves: "步數", time: "時間", tictactoe: "井字棋", tictactoeDesc: "單機或聯機", rps: "石頭剪刀布", rpsDesc: "人機對戰", minesweeper: "踩地雷", minesweeperDesc: "經典邏輯", turnX: "你的回合 (X)", turnO: "電腦回合 (O)", compThinking: "思考中...", winX: "你贏了! 🎉", winO: "電腦贏了! 😢", draw: "平手! 🤝", chooseWeapon: "選擇武器:", win: "你贏了! 🎉", lose: "你輸了! 😢", tie: "平手! 🤝", wins: "勝", losses: "負", draws: "平", easy: "簡單", hard: "困難", online: "🌐 聯機對戰", searching: "尋找對手...", opponentLeft: "對手退出! 你贏了! 🎉", waitingTurn: "等待對手...", yourTurn: "你的回合!", flags: "旗幟:", msWin: "過關! 🎉", msLose: "砰！💥", toggleMC: "MC: 關", toggleMCon: "MC: 開", leaderboard: "🏆 排行榜", loading: "加載中...", noRecords: "暫無記錄.", snake: "貪吃蛇", snakeDesc: "街機", score: "分數", gameOver: "遊戲結束!", tetris: "俄羅斯方塊", tetrisDesc: "經典方塊", nextPiece: "下一個:", lines: "行數", level: "等級", allowRotation: "旋轉", rulesTitle: "規則", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "接龍", solitaireDesc: "經典", solWin: "過關! 🎉", solLose: "沒有移動了! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." },
-        kk: { hubTitle: "🎮 Ретро Хаб", chooseGame: "Ойынды таңдаңыз:", backBtn: "⬅ Қайту", restart: "Қайта бастау", cancel: "Болдырмау", pause: "Үзіліс", resume: "Жалғастыру", moves: "Қадам", time: "Уақыт", tictactoe: "Крестик-нолик", tictactoeDesc: "ДК немесе онлайн", rps: "Тас-Қайшы-Қағаз", rpsDesc: "ДК қарсы", minesweeper: "Сапер", minesweeperDesc: "Логикалық", turnX: "Сенің жүрісің (X)", turnO: "ДК жүрісі (O)", compThinking: "Ойлануда...", winX: "Жеңдің! 🎉", winO: "ДК жеңді! 😢", draw: "Тең! 🤝", chooseWeapon: "Таңдау жаса:", win: "Жеңдің! 🎉", lose: "Ұтылдың! 😢", tie: "Тең! 🤝", wins: "Жеңістер", losses: "Жеңілістер", draws: "Тең", easy: "Оңай", hard: "Қиын", online: "🌐 Онлайн", searching: "Іздеу...", opponentLeft: "Қарсылас шықты! 🎉", waitingTurn: "Қарсылас жүрісі", yourTurn: "Сенің жүрісің!", flags: "Жалаулар:", msWin: "Тазарттың! 🎉", msLose: "Бум! 💥", toggleMC: "MC: ӨШУЛІ", toggleMCon: "MC: ҚОСУЛЫ", leaderboard: "🏆 Рекордтар", loading: "Жүктелуде...", noRecords: "Жазбалар жоқ.", snake: "Жылан", snakeDesc: "Аркада", score: "Есеп", gameOver: "АЯҚТАЛДЫ!", tetris: "Тетрис", tetrisDesc: "Блоктар", nextPiece: "Келесі:", lines: "Жолдар", level: "Деңгей", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Пасьянс", solitaireDesc: "Карта", solWin: "Жеңдің! 🎉", solLose: "Қадам жоқ! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." },
-        be: { hubTitle: "🎮 Рэтра Хаб", chooseGame: "Выберыце:", backBtn: "⬅ Назад", restart: "Нанова", cancel: "Адмена", pause: "Паўза", resume: "Працягнуць", moves: "Хады", time: "Час", tictactoe: "Крыжыкі-нолікі", tictactoeDesc: "ПК або анлайн", rps: "Камень-Нажніцы-Папера", rpsDesc: "Супраць ПК", minesweeper: "Сапёр", minesweeperDesc: "Галаваломка", turnX: "Твой ход (X)", turnO: "Ход ПК (O)", compThinking: "Думае...", winX: "Перамог! 🎉", winO: "ПК перамог! 😢", draw: "Нічыя! 🤝", chooseWeapon: "Выбар:", win: "Перамог! 🎉", lose: "Прайграў! 😢", tie: "Нічыя! 🤝", wins: "Перамогі", losses: "Паражэнні", draws: "Нічыі", easy: "Лёгка", hard: "Складана", online: "🌐 Анлайн", searching: "Пошук...", opponentLeft: "Праціўнік выйшаў! 🎉", waitingTurn: "Ход праціўніка", yourTurn: "Твой ход!", flags: "Сцяжкі:", msWin: "Чыста! 🎉", msLose: "Бум! 💥", toggleMC: "MC: ВЫКЛ", toggleMCon: "MC: УКЛ", leaderboard: "🏆 Рэкорды", loading: "Загрузка...", noRecords: "Няма рэкордаў.", snake: "Змейка", snakeDesc: "Аркада", score: "Лік", gameOver: "СКОНЧАНА!", tetris: "Тэтрыс", tetrisDesc: "Галаваломка", nextPiece: "Наступная:", lines: "Лініі", level: "Узровень", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Пасьянс", solitaireDesc: "Карты", solWin: "Перамога! 🎉", solLose: "Няма хадоў! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." },
-        uk: { hubTitle: "🎮 Ретро Хаб", chooseGame: "Оберіть гру:", backBtn: "⬅ Назад", restart: "Заново", cancel: "Скасувати", pause: "Пауза", resume: "Продовжити", moves: "Ходи", time: "Час", tictactoe: "Хрестики-нулики", tictactoeDesc: "ПК або онлайн", rps: "Камінь-Ножиці-Папір", rpsDesc: "Проти ПК", minesweeper: "Сапер", minesweeperDesc: "Головоломка", turnX: "Твій хід (X)", turnO: "Хід ПК (O)", compThinking: "Думає...", winX: "Перемога! 🎉", winO: "ПК переміг! 😢", draw: "Нічия! 🤝", chooseWeapon: "Вибір:", win: "Перемога! 🎉", lose: "Поразка! 😢", tie: "Нічия! 🤝", wins: "Перемоги", losses: "Поразки", draws: "Нічиї", easy: "Легко", hard: "Складно", online: "🌐 Онлайн", searching: "Пошук...", opponentLeft: "Суперник вийшов! 🎉", waitingTurn: "Хід суперника", yourTurn: "Твій хід!", flags: "Прапорці:", msWin: "Чисто! 🎉", msLose: "Бум! 💥", toggleMC: "MC: ВИМК", toggleMCon: "MC: УВІМК", leaderboard: "🏆 Рекорди", loading: "Завантаження...", noRecords: "Немає записів.", snake: "Змійка", snakeDesc: "Аркада", score: "Рахунок", gameOver: "КІНЕЦЬ!", tetris: "Тетріс", tetrisDesc: "Головоломка", nextPiece: "Наступна:", lines: "Лінії", level: "Рівень", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Пасьянс", solitaireDesc: "Карти", solWin: "Перемога! 🎉", solLose: "Немає ходів! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." },
-        uz: { hubTitle: "🎮 Retro Xab", chooseGame: "Tanlang:", backBtn: "⬅ Orqaga", restart: "Qayta", cancel: "Bekor qilish", pause: "Pauza", resume: "Davom etish", moves: "Yurishlar", time: "Vaqt", tictactoe: "Tik-tak-toe", tictactoeDesc: "PK yoki onlayn", rps: "Tosh-Qaychi-Qog'oz", rpsDesc: "PK ga qarshi", minesweeper: "Sapyol", minesweeperDesc: "Boshqotirma", turnX: "Siz (X)", turnO: "PK (O)", compThinking: "O'ylamoqda...", winX: "Yutdingiz! 🎉", winO: "PK yutdi! 😢", draw: "Durang! 🤝", chooseWeapon: "Tanlov:", win: "Yutdingiz! 🎉", lose: "Yutqazdingiz! 😢", tie: "Durang! 🤝", wins: "G'alaba", losses: "Mag'lubiyat", draws: "Durang", easy: "Oson", hard: "Qiyin", online: "🌐 Onlayn", searching: "Qidirilmoqda...", opponentLeft: "Raqib chiqdi! 🎉", waitingTurn: "Raqib navbati", yourTurn: "Sizning navbatingiz!", flags: "Bayroqlar:", msWin: "Tozalandi! 🎉", msLose: "Bum! 💥", toggleMC: "MC: O'CHIQ", toggleMCon: "MC: YONIQ", leaderboard: "🏆 Rekordlar", loading: "Yuklanmoqda...", noRecords: "Yozuvlar yo'q.", snake: "Ilon", snakeDesc: "Arkada", score: "Hisob", gameOver: "TUGADI!", tetris: "Tetris", tetrisDesc: "Boshqotirma", nextPiece: "Keyingisi:", lines: "Qatorlar", level: "Daraja", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Pasyans", solitaireDesc: "Kartalar", solWin: "Yutdingiz! 🎉", solLose: "Yurishlar yo'q! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation." }
+        es: { hubTitle: "🎮 Retro Hub", chooseGame: "Elige un juego:", backBtn: "⬅ Volver", restart: "Reiniciar", cancel: "Cancelar", pause: "Pausa", resume: "Reanudar", moves: "Mov.", time: "Tiempo", tictactoe: "Tres en raya", tictactoeDesc: "PC u online", rps: "Piedra, Papel, Tijera", rpsDesc: "Contra la PC", minesweeper: "Buscaminas", minesweeperDesc: "Puzle lógico", turnX: "Tu turno (X)", turnO: "Turno de PC (O)", compThinking: "Pensando...", winX: "¡Ganaste! 🎉", winO: "¡PC Gana! 😢", draw: "¡Empate! 🤝", chooseWeapon: "Elige tu arma:", win: "¡Ganaste! 🎉", lose: "¡Perdiste! 😢", tie: "¡Empate! 🤝", wins: "Victorias", losses: "Derrotas", draws: "Empates", easy: "PC (Fácil)", hard: "PC (Difícil)", online: "🌐 Online", searching: "Buscando...", opponentLeft: "Rival desconectado. ¡Ganas! 🎉", waitingTurn: "Turno del rival", yourTurn: "¡Tu turno!", flags: "Banderas:", msWin: "¡Limpiaste el campo! 🎉", msLose: "¡Boom! Mina 💥", toggleMC: "MC: OFF", toggleMCon: "MC: ON", leaderboard: "🏆 Mejores", loading: "Cargando...", noRecords: "Sin registros.", snake: "Serpiente", snakeDesc: "Arcade clásico", score: "Puntaje", gameOver: "¡TERMINADO!", tetris: "Tetris", tetrisDesc: "Puzle de bloques", nextPiece: "Sig.:", lines: "Líneas", level: "Nivel", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Solitario", solitaireDesc: "Clásico", solWin: "¡Resuelto! 🎉", solLose: "¡Sin movimientos! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation.", tanks: "Battle City", tanksDesc: "Combate de tanques", tanksKills: "Enemigos:", tanksBase: "Base:", tanksBaseAlive: "A SALVO 🛡️", tanksBaseDead: "DESTRUIDA 💥", tankRule1Title: "Meta:", tankRule1Desc: "Destruye tanques y defiende la base.", tankRule2Title: "Controles:", tankRule2Desc: "WASD para moverte, Espacio para disparar.", tankRule3Title: "Bloques:", tankRule3Desc: "El ladrillo se rompe, el acero no." },
+        fr: { hubTitle: "🎮 Retro Hub", chooseGame: "Choisissez:", backBtn: "⬅ Retour", restart: "Recommencer", cancel: "Annuler", pause: "Pause", resume: "Reprendre", moves: "Coups", time: "Temps", tictactoe: "Morpion", tictactoeDesc: "PC ou en ligne", rps: "Pierre-Papier-Ciseaux", rpsDesc: "Contre le PC", minesweeper: "Démineur", minesweeperDesc: "Jeu de logique", turnX: "A ton tour (X)", turnO: "Tour du PC (O)", compThinking: "Réfléchit...", winX: "Tu as gagné! 🎉", winO: "Le PC a gagné! 😢", draw: "Match nul! 🤝", chooseWeapon: "Arme:", win: "Gagné! 🎉", lose: "Perdu! 😢", tie: "Égalité! 🤝", wins: "Victoires", losses: "Défaites", draws: "Nuls", easy: "PC (Facile)", hard: "PC (Difficile)", online: "🌐 En ligne", searching: "Recherche...", opponentLeft: "Adversaire parti! Gagné! 🎉", waitingTurn: "Tour de l'adversaire", yourTurn: "A ton tour!", flags: "Drapeaux:", msWin: "Champ déminé! 🎉", msLose: "Boom! 💥", toggleMC: "MC: OFF", toggleMCon: "MC: ON", leaderboard: "🏆 Meilleurs", loading: "Chargement...", noRecords: "Aucun enregistrement.", snake: "Serpent", snakeDesc: "Arcade", score: "Score", gameOver: "FIN!", tetris: "Tetris", tetrisDesc: "Puzzle de blocs", nextPiece: "Suiv:", lines: "Lignes", level: "Niveau", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Solitaire", solitaireDesc: "Classique", solWin: "Gagné! 🎉", solLose: "Plus de coups! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation.", tanks: "Battle City", tanksDesc: "Combat de chars", tanksKills: "Ennemis:", tanksBase: "Base:", tanksBaseAlive: "SÉCURISÉE 🛡️", tanksBaseDead: "DÉTRUITE 💥", tankRule1Title: "But:", tankRule1Desc: "Détruisez les chars et défendez la base.", tankRule2Title: "Contrôles:", tankRule2Desc: "WASD pour bouger, Espace pour tirer.", tankRule3Title: "Blocs:", tankRule3Desc: "La brique casse, l'acier non." },
+        "zh-CN": { hubTitle: "🎮 复古游戏中心", chooseGame: "选择游戏:", backBtn: "⬅ 返回", restart: "重新开始", cancel: "取消", pause: "暂停", resume: "继续", moves: "步数", time: "时间", tictactoe: "井字棋", tictactoeDesc: "单机或联机", rps: "石头剪刀布", rpsDesc: "人机对战", minesweeper: "扫雷", minesweeperDesc: "经典逻辑", turnX: "你的回合 (X)", turnO: "电脑回合 (O)", compThinking: "思考中...", winX: "你赢了! 🎉", winO: "电脑赢了! 😢", draw: "平局! 🤝", chooseWeapon: "选择武器:", win: "你赢了! 🎉", lose: "你输了! 😢", tie: "平局! 🤝", wins: "胜", losses: "负", draws: "平", easy: "简单", hard: "困难", online: "🌐 联机对战", searching: "寻找对手...", opponentLeft: "对手退出! 你赢了! 🎉", waitingTurn: "等待对手...", yourTurn: "你的回合!", flags: "旗帜:", msWin: "过关! 🎉", msLose: "砰！💥", toggleMC: "MC: 关", toggleMCon: "MC: 开", leaderboard: "🏆 排行榜", loading: "加载中...", noRecords: "暂无记录.", snake: "贪吃蛇", snakeDesc: "街机", score: "分数", gameOver: "游戏结束!", tetris: "俄罗斯方块", tetrisDesc: "经典方块", nextPiece: "下一个:", lines: "行数", level: "等级", allowRotation: "旋转", rulesTitle: "规则", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "纸牌", solitaireDesc: "经典", solWin: "过关! 🎉", solLose: "没有移动了! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation.", tanks: "坦克大战", tanksDesc: "经典坦克战斗", tanksKills: "敌军:", tanksBase: "基地:", tanksBaseAlive: "安全 🛡️", tanksBaseDead: "被毁 💥", tankRule1Title: "目标:", tankRule1Desc: "消灭所有坦克并保卫老鹰基地。", tankRule2Title: "操作:", tankRule2Desc: "WASD移动，空格射击。", tankRule3Title: "障碍:", tankRule3Desc: "砖块可破坏，铁块不可破坏。" },
+        "zh-TW": { hubTitle: "🎮 復古遊戲中心", chooseGame: "選擇遊戲:", backBtn: "⬅ 返回", restart: "重新開始", cancel: "取消", pause: "暫停", resume: "繼續", moves: "步數", time: "時間", tictactoe: "井字棋", tictactoeDesc: "單機或聯機", rps: "石頭剪刀布", rpsDesc: "人機對戰", minesweeper: "踩地雷", minesweeperDesc: "經典邏輯", turnX: "你的回合 (X)", turnO: "電腦回合 (O)", compThinking: "思考中...", winX: "你贏了! 🎉", winO: "電腦贏了! 😢", draw: "平手! 🤝", chooseWeapon: "選擇武器:", win: "你贏了! 🎉", lose: "你輸了! 😢", tie: "平手! 🤝", wins: "勝", losses: "負", draws: "平", easy: "簡單", hard: "困難", online: "🌐 聯機對戰", searching: "尋找對手...", opponentLeft: "對手退出! 你贏了! 🎉", waitingTurn: "等待對手...", yourTurn: "你的回合!", flags: "旗幟:", msWin: "過關! 🎉", msLose: "砰！💥", toggleMC: "MC: 關", toggleMCon: "MC: 開", leaderboard: "🏆 排行榜", loading: "加載中...", noRecords: "暫無記錄.", snake: "貪吃蛇", snakeDesc: "街機", score: "分數", gameOver: "遊戲結束!", tetris: "俄羅斯方塊", tetrisDesc: "經典方塊", nextPiece: "下一個:", lines: "行數", level: "等級", allowRotation: "旋轉", rulesTitle: "規則", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "接龍", solitaireDesc: "經典", solWin: "過關! 🎉", solLose: "沒有移動了! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation.", tanks: "坦克大戰", tanksDesc: "經典坦克戰鬥", tanksKills: "敵軍:", tanksBase: "基地:", tanksBaseAlive: "安全 🛡️", tanksBaseDead: "被毀 💥", tankRule1Title: "目標:", tankRule1Desc: "消滅所有坦克並保衛老鷹基地。", tankRule2Title: "操作:", tankRule2Desc: "WASD移動，空格射擊。", tankRule3Title: "障礙:", tankRule3Desc: "磚塊可破壞，鐵塊不可破壞。" },
+        kk: { hubTitle: "🎮 Ретро Хаб", chooseGame: "Ойынды таңдаңыз:", backBtn: "⬅ Қайту", restart: "Қайта бастау", cancel: "Болдырмау", pause: "Үзіліс", resume: "Жалғастыру", moves: "Қадам", time: "Уақыт", tictactoe: "Крестик-нолик", tictactoeDesc: "ДК немесе онлайн", rps: "Тас-Қайшы-Қағаз", rpsDesc: "ДК қарсы", minesweeper: "Сапер", minesweeperDesc: "Логикалық", turnX: "Сенің жүрісің (X)", turnO: "ДК жүрісі (O)", compThinking: "Ойлануда...", winX: "Жеңдің! 🎉", winO: "ДК жеңді! 😢", draw: "Тең! 🤝", chooseWeapon: "Таңдау жаса:", win: "Жеңдің! 🎉", lose: "Ұтылдың! 😢", tie: "Тең! 🤝", wins: "Жеңістер", losses: "Жеңілістер", draws: "Тең", easy: "Оңай", hard: "Қиын", online: "🌐 Онлайн", searching: "Іздеу...", opponentLeft: "Қарсылас шықты! 🎉", waitingTurn: "Қарсылас жүрісі", yourTurn: "Сенің жүрісің!", flags: "Жалаулар:", msWin: "Тазарттың! 🎉", msLose: "Бум! 💥", toggleMC: "MC: ӨШУЛІ", toggleMCon: "MC: ҚОСУЛЫ", leaderboard: "🏆 Рекордтар", loading: "Жүктелуде...", noRecords: "Жазбалар жоқ.", snake: "Жылан", snakeDesc: "Аркада", score: "Есеп", gameOver: "АЯҚТАЛДЫ!", tetris: "Тетрис", tetrisDesc: "Блоктар", nextPiece: "Келесі:", lines: "Жолдар", level: "Деңгей", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Пасьянс", solitaireDesc: "Карта", solWin: "Жеңдің! 🎉", solLose: "Қадам жоқ! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation.", tanks: "Танктер", tanksDesc: "Battle City", tanksKills: "Жаулар:", tanksBase: "Штаб:", tanksBaseAlive: "БҮТІН 🛡️", tanksBaseDead: "ҚИРАДЫ 💥", tankRule1Title: "Мақсат:", tankRule1Desc: "Барлық танктерді жойып, штабты қорғау.", tankRule2Title: "Басқару:", tankRule2Desc: "WASD қозғалу, Бос орын ату.", tankRule3Title: "Блоктар:", tankRule3Desc: "Кірпіш бұзылады, темір бұзылмайды." },
+        be: { hubTitle: "🎮 Рэтра Хаб", chooseGame: "Выберыце:", backBtn: "⬅ Назад", restart: "Нанова", cancel: "Адмена", pause: "Паўза", resume: "Працягнуць", moves: "Хады", time: "Час", tictactoe: "Крыжыкі-нолікі", tictactoeDesc: "ПК або анлайн", rps: "Камень-Нажніцы-Папера", rpsDesc: "Супраць ПК", minesweeper: "Сапёр", minesweeperDesc: "Галаваломка", turnX: "Твой ход (X)", turnO: "Ход ПК (O)", compThinking: "Думае...", winX: "Перамог! 🎉", winO: "ПК перамог! 😢", draw: "Нічыя! 🤝", chooseWeapon: "Выбар:", win: "Перамог! 🎉", lose: "Прайграў! 😢", tie: "Нічыя! 🤝", wins: "Перамогі", losses: "Паражэнні", draws: "Нічыі", easy: "Лёгка", hard: "Складана", online: "🌐 Анлайн", searching: "Пошук...", opponentLeft: "Праціўнік выйшаў! 🎉", waitingTurn: "Ход праціўніка", yourTurn: "Твой ход!", flags: "Сцяжкі:", msWin: "Чыста! 🎉", msLose: "Бум! 💥", toggleMC: "MC: ВЫКЛ", toggleMCon: "MC: УКЛ", leaderboard: "🏆 Рэкорды", loading: "Загрузка...", noRecords: "Няма рэкордаў.", snake: "Змейка", snakeDesc: "Аркада", score: "Лік", gameOver: "СКОНЧАНА!", tetris: "Тэтрыс", tetrisDesc: "Галаваломка", nextPiece: "Наступная:", lines: "Лініі", level: "Узровень", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Пасьянс", solitaireDesc: "Карты", solWin: "Перамога! 🎉", solLose: "Няма хадоў! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation.", tanks: "Танчыкі", tanksDesc: "Battle City", tanksKills: "Ворагі:", tanksBase: "Штаб:", tanksBaseAlive: "ЦЭЛЫ 🛡️", tanksBaseDead: "ЗНІШЧАНЫ 💥", tankRule1Title: "Мэта:", tankRule1Desc: "Знішчыць танкі і абараніць штаб.", tankRule2Title: "Кіраванне:", tankRule2Desc: "WASD рух, Прабел стрэл.", tankRule3Title: "Блокі:", tankRule3Desc: "Цэгла разбураецца, сталь не." },
+        uk: { hubTitle: "🎮 Ретро Хаб", chooseGame: "Оберіть гру:", backBtn: "⬅ Назад", restart: "Заново", cancel: "Скасувати", pause: "Пауза", resume: "Продовжити", moves: "Ходи", time: "Час", tictactoe: "Хрестики-нулики", tictactoeDesc: "ПК або онлайн", rps: "Камінь-Ножиці-Папір", rpsDesc: "Проти ПК", minesweeper: "Сапер", minesweeperDesc: "Головоломка", turnX: "Твій хід (X)", turnO: "Хід ПК (O)", compThinking: "Думає...", winX: "Перемога! 🎉", winO: "ПК переміг! 😢", draw: "Нічия! 🤝", chooseWeapon: "Вибір:", win: "Перемога! 🎉", lose: "Поразка! 😢", tie: "Нічия! 🤝", wins: "Перемоги", losses: "Поразки", draws: "Нічиї", easy: "Легко", hard: "Складно", online: "🌐 Онлайн", searching: "Пошук...", opponentLeft: "Суперник вийшов! 🎉", waitingTurn: "Хід суперника", yourTurn: "Твій хід!", flags: "Прапорці:", msWin: "Чисто! 🎉", msLose: "Бум! 💥", toggleMC: "MC: ВИМК", toggleMCon: "MC: УВІМК", leaderboard: "🏆 Рекорди", loading: "Завантаження...", noRecords: "Немає записів.", snake: "Змійка", snakeDesc: "Аркада", score: "Рахунок", gameOver: "КІНЕЦЬ!", tetris: "Тетріс", tetrisDesc: "Головоломка", nextPiece: "Наступна:", lines: "Лінії", level: "Рівень", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Пасьянс", solitaireDesc: "Карти", solWin: "Перемога! 🎉", solLose: "Немає ходів! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation.", tanks: "Танчики", tanksDesc: "Battle City", tanksKills: "Вороги:", tanksBase: "Штаб:", tanksBaseAlive: "ЦІЛИЙ 🛡️", tanksBaseDead: "ЗНИЩЕНИЙ 💥", tankRule1Title: "Мета:", tankRule1Desc: "Знищити танки та захистити штаб.", tankRule2Title: "Керування:", tankRule2Desc: "WASD рух, Пробіл постріл.", tankRule3Title: "Блоки:", tankRule3Desc: "Цегла ламається, сталь ні." },
+        uz: { hubTitle: "🎮 Retro Xab", chooseGame: "Tanlang:", backBtn: "⬅ Orqaga", restart: "Qayta", cancel: "Bekor qilish", pause: "Pauza", resume: "Davom etish", moves: "Yurishlar", time: "Vaqt", tictactoe: "Tik-tak-toe", tictactoeDesc: "PK yoki onlayn", rps: "Tosh-Qaychi-Qog'oz", rpsDesc: "PK ga qarshi", minesweeper: "Sapyol", minesweeperDesc: "Boshqotirma", turnX: "Siz (X)", turnO: "PK (O)", compThinking: "O'ylamoqda...", winX: "Yutdingiz! 🎉", winO: "PK yutdi! 😢", draw: "Durang! 🤝", chooseWeapon: "Tanlov:", win: "Yutdingiz! 🎉", lose: "Yutqazdingiz! 😢", tie: "Durang! 🤝", wins: "G'alaba", losses: "Mag'lubiyat", draws: "Durang", easy: "Oson", hard: "Qiyin", online: "🌐 Onlayn", searching: "Qidirilmoqda...", opponentLeft: "Raqib chiqdi! 🎉", waitingTurn: "Raqib navbati", yourTurn: "Sizning navbatingiz!", flags: "Bayroqlar:", msWin: "Tozalandi! 🎉", msLose: "Bum! 💥", toggleMC: "MC: O'CHIQ", toggleMCon: "MC: YONIQ", leaderboard: "🏆 Rekordlar", loading: "Yuklanmoqda...", noRecords: "Yozuvlar yo'q.", snake: "Ilon", snakeDesc: "Arkada", score: "Hisob", gameOver: "TUGADI!", tetris: "Tetris", tetrisDesc: "Boshqotirma", nextPiece: "Keyingisi:", lines: "Qatorlar", level: "Daraja", allowRotation: "Rotation", rulesTitle: "Rules", rule1Title: "Goal:", rule1Desc: "Build solid horizontal rows.", rule2Title: "Controls:", rule2Desc: "Move left/right, rotate.", rule3Title: "Scoring:", rule3Desc: "More lines = more points.", rule4Title: "Progression:", rule4Desc: "Every 10 lines increases level.", rule5Title: "Game Over:", rule5Desc: "Game ends when grid fills.", solitaire: "Pasyans", solitaireDesc: "Kartalar", solWin: "Yutdingiz! 🎉", solLose: "Yurishlar yo'q! 💀", solRule1Title: "Goal:", solRule1Desc: "Move to foundations Ace-King.", solRule2Title: "Tableau:", solRule2Desc: "Build down alt colors.", solRule3Title: "Stock:", solRule3Desc: "Click deck to draw.", solRule4Title: "Quick:", solRule4Desc: "Double-click to foundation.", tanks: "Tanklar", tanksDesc: "Battle City", tanksKills: "Dushmanlar:", tanksBase: "Shtab:", tanksBaseAlive: "XAVFSIZ 🛡️", tanksBaseDead: "VAYRON BO'LDI 💥", tankRule1Title: "Maqsad:", tankRule1Desc: "Tanklarni yo'q qilish va shtabni himoya qilish.", tankRule2Title: "Boshqaruv:", tankRule2Desc: "WASD harakat, Probel o'q otish.", tankRule3Title: "Bloklar:", tankRule3Desc: "G'isht sinadi, po'lat sinmaydi." }
     };
 
     // =========================================
@@ -105,6 +180,8 @@
     const root = document.documentElement;
     const themeToggle = document.getElementById('themeToggle');
     const soundToggle = document.getElementById('soundToggle');
+    const musicToggle = document.getElementById('musicToggle');
+    const animToggle = document.getElementById('animToggle');
     const langSelect = document.getElementById('langSelect');
     const colorSelect = document.getElementById('colorSelect');
     const clockTime = document.getElementById('clockTime');
@@ -142,10 +219,19 @@
         if (!translations[currentLang]) currentLang = 'en'; 
         root.setAttribute('data-theme', currentTheme);
         root.setAttribute('data-accent', currentAccent);
-        updateThemeIcon(); updateSoundIcon(); updateAuthBtn();
+        updateThemeIcon(); updateSoundIcon(); updateMusicIcon(); updateAnimIcon(); updateAuthBtn();
         langSelect.value = currentLang; colorSelect.value = currentAccent;
         updateLanguage(); updateClock(); setInterval(updateClock, 1000);
         initFavorites(); initDragAndDrop(); 
+
+        // Инициализация фоновой музыки по первому клику пользователя (политика браузеров)
+        const startAudio = () => {
+            if (AudioEngine.musicEnabled && !AudioEngine.isPlayingBGM) AudioEngine.playBGM();
+            document.removeEventListener('click', startAudio);
+            document.removeEventListener('keydown', startAudio);
+        };
+        document.addEventListener('click', startAudio);
+        document.addEventListener('keydown', startAudio);
     }
 
     // =========================================
@@ -220,6 +306,18 @@
     // =========================================
     function updateThemeIcon() { themeToggle.querySelector('.theme-icon').textContent = currentTheme === 'dark' ? '🌙' : '☀️'; }
     function updateSoundIcon() { soundToggle.querySelector('.sound-icon').textContent = AudioEngine.enabled ? '🔊' : '🔇'; }
+    
+    function updateMusicIcon() { 
+        musicToggle.querySelector('.music-icon').textContent = AudioEngine.musicEnabled ? '🎵' : '⏸️'; 
+        musicToggle.style.opacity = AudioEngine.musicEnabled ? '1' : '0.5';
+    }
+    
+    function updateAnimIcon() { 
+        animToggle.querySelector('.anim-icon').textContent = window.animEnabled ? '✨' : '⛔';
+        animToggle.style.opacity = window.animEnabled ? '1' : '0.5';
+        if (!window.animEnabled) document.body.classList.add('no-animations');
+        else document.body.classList.remove('no-animations');
+    }
 
     themeToggle.addEventListener('click', () => {
         currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -233,7 +331,15 @@
         if(activeGameInstance && activeGameInstance.updateThemeColors) activeGameInstance.updateThemeColors();
     });
 
-    soundToggle.addEventListener('click', () => { AudioEngine.toggle(); updateSoundIcon(); });
+    soundToggle.addEventListener('click', () => { AudioEngine.toggleSound(); updateSoundIcon(); });
+    musicToggle.addEventListener('click', () => { AudioEngine.toggleMusic(); updateMusicIcon(); });
+    
+    animToggle.addEventListener('click', () => { 
+        window.animEnabled = !window.animEnabled; 
+        localStorage.setItem('hub_anim', window.animEnabled ? 'on' : 'off'); 
+        updateAnimIcon(); 
+    });
+
     langSelect.addEventListener('change', (e) => {
         currentLang = e.target.value; localStorage.setItem('hub_lang', currentLang);
         updateLanguage(); updateClock(); if (activeGameInstance && activeGameInstance.updateTexts) activeGameInstance.updateTexts();
@@ -379,6 +485,7 @@
         else if (gameId === 'snake') activeGameInstance = initSnake();
         else if (gameId === 'tetris') activeGameInstance = initTetris();
         else if (gameId === 'solitaire') activeGameInstance = initSolitaire();
+        else if (gameId === 'tanks') activeGameInstance = initTanks();
     }
 
     // =========================================
@@ -402,7 +509,6 @@
             <div class="tictactoe-board" id="tttBoard"></div>
             <button id="tttRestart" class="restart-btn" style="display:none;"></button>
 
-            <!-- Спиннер поиска онлайн игры -->
             <div id="searchingOverlay" class="searching-overlay">
                 <div class="spinner"></div>
                 <p data-i18n="searching">Searching for opponent...</p>
@@ -525,7 +631,7 @@
         restartBtn.addEventListener('click', () => { AudioEngine.play('pop'); resetGame(); });
 
         async function startOnlineMatch() {
-            if (!window.signalR) { alert("Библиотека SignalR не загружена."); diffSelect.value = 'pc_easy'; return; }
+            if (!window.signalR) { alert("Библиотека SignalR не загружена."); diffSelect.value = 'easy'; return; }
             isOnline = true; resetGame(); overlay.style.display = 'flex';
             if (!connection) {
                 connection = new signalR.HubConnectionBuilder().withUrl(HUB_URL).withAutomaticReconnect().build();
@@ -544,14 +650,14 @@
                 });
             }
             try { if (connection.state === signalR.HubConnectionState.Disconnected) await connection.start(); await connection.invoke("FindOpponent"); } 
-            catch (err) { console.error(err); alert("Не удалось подключиться к серверу!"); diffSelect.value = 'pc_easy'; isOnline = false; overlay.style.display = 'none'; }
+            catch (err) { console.error(err); alert("Не удалось подключиться к серверу!"); diffSelect.value = 'easy'; isOnline = false; overlay.style.display = 'none'; }
         }
 
         diffSelect.addEventListener('change', () => { 
             if (diffSelect.value === 'online') { startOnlineMatch(); } else { isOnline = false; overlay.style.display = 'none'; if (connection) connection.stop(); resetGame(); }
         });
 
-        cancelBtn.addEventListener('click', () => { AudioEngine.play('pop'); if (connection) connection.stop(); diffSelect.value = 'pc_easy'; isOnline = false; overlay.style.display = 'none'; resetGame(); });
+        cancelBtn.addEventListener('click', () => { AudioEngine.play('pop'); if (connection) connection.stop(); diffSelect.value = 'easy'; isOnline = false; overlay.style.display = 'none'; resetGame(); });
         renderBoard(); updateTexts(); updateScoreBoard();
         return { updateTexts, getStats: () => stats, destroy: () => { clearTimeout(timer); if (connection) connection.stop(); } };
     }
@@ -594,6 +700,15 @@
 
         function play(pChoice) {
             hasPlayed = true; const cChoice = choices[Math.floor(Math.random() * choices.length)];
+            
+            // Сбрасываем анимацию перед новым ходом (хак для перезапуска)
+            pDisplay.style.animation = 'none'; cDisplay.style.animation = 'none';
+            pDisplay.offsetHeight; 
+            if(window.animEnabled) {
+                pDisplay.style.animation = 'popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
+                cDisplay.style.animation = 'popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards';
+            }
+            
             pDisplay.textContent = emojis[pChoice]; cDisplay.textContent = emojis[cChoice];
             if (pChoice === cChoice) { lastResult = 'tie'; statusEl.className = 'game-status draw'; stats.d++; AudioEngine.play('draw'); } 
             else if ((pChoice === 'rock' && cChoice === 'scissors') || (pChoice === 'paper' && cChoice === 'rock') || (pChoice === 'scissors' && cChoice === 'paper')) {
@@ -742,6 +857,7 @@
         let snake = [], snakeLength = 4, headX = 10, headY = 10, xVelocity = 0, yVelocity = 0, appleX = 5, appleY = 5, score = 0;
         let highScore = localStorage.getItem("snakeHighScore") || 0; highScoreElement.innerText = highScore;
         let gameLoop, gameSpeed = 120, snakeColor = "#00ffcc", foodColor = "#ff0055";
+        let shake = 0;
 
         function updateThemeColors() {
             const styles = getComputedStyle(document.documentElement);
@@ -749,14 +865,22 @@
         }
 
         function startGame() {
-            snake = []; snakeLength = 4; headX = 10; headY = 10; xVelocity = 0; yVelocity = 0; score = 0; gameSpeed = 120;
+            snake = []; snakeLength = 4; headX = 10; headY = 10; xVelocity = 0; yVelocity = 0; score = 0; gameSpeed = 120; shake = 0;
             scoreElement.innerText = score; gameOverScreen.style.display = "none"; placeApple(); clearTimeout(gameLoop); updateThemeColors(); drawGame();
         }
 
         function drawGame() {
             headX += xVelocity; headY += yVelocity;
             if (isGameOver()) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height); checkAppleCollision(); drawApple(); drawSnake();
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const isShaken = applyShake(ctx, shake);
+            if (shake > 0) shake *= 0.8;
+            if (shake < 0.5) shake = 0;
+            
+            checkAppleCollision(); drawApple(); drawSnake();
+            if (isShaken) ctx.restore();
+
             if (score > 5) gameSpeed = 100; if (score > 10) gameSpeed = 80; if (score > 20) gameSpeed = 60;
             gameLoop = setTimeout(drawGame, gameSpeed);
         }
@@ -766,7 +890,8 @@
             if (headX < 0 || headX >= tileCount || headY < 0 || headY >= tileCount) over = true;
             for (let i = 0; i < snake.length; i++) { if (snake[i].x === headX && snake[i].y === headY) { over = true; break; } }
             if (over) {
-                AudioEngine.play('lose'); gameOverScreen.style.display = "flex"; finalScoreElement.innerText = score;
+                AudioEngine.play('lose'); shake = 15;
+                gameOverScreen.style.display = "flex"; finalScoreElement.innerText = score;
                 if (score > highScore) { highScore = score; localStorage.setItem("snakeHighScore", highScore); highScoreElement.innerText = highScore; }
             }
             return over;
@@ -784,7 +909,11 @@
             ctx.arc(appleX * gridSize + gridSize/2, appleY * gridSize + gridSize/2, (gridSize - 2)/2, 0, 2 * Math.PI); ctx.fill(); ctx.shadowBlur = 0;
         }
 
-        function checkAppleCollision() { if (appleX === headX && appleY == headY) { AudioEngine.play('pop'); placeApple(); snakeLength++; score++; scoreElement.innerText = score; } }
+        function checkAppleCollision() { 
+            if (appleX === headX && appleY == headY) { 
+                AudioEngine.play('pop'); shake = 4; placeApple(); snakeLength++; score++; scoreElement.innerText = score; 
+            } 
+        }
         function placeApple() {
             let valid = false; while (!valid) {
                 appleX = Math.floor(Math.random() * tileCount); appleY = Math.floor(Math.random() * tileCount); valid = true;
@@ -892,6 +1021,7 @@
 
         let dropCounter = 0; let dropInterval = 1000; let lastTime = 0;
         let isGameOver = false; let isPaused = false; let animationId = null;
+        let shake = 0;
 
         function createMatrix(w, h) { const m = []; while (h--) m.push(new Array(w).fill(0)); return m; }
 
@@ -942,11 +1072,12 @@
             drawNextPiece();
             
             if (collide(arena, player)) {
-                isGameOver = true; 
+                isGameOver = true; shake = 15;
                 cancelAnimationFrame(animationId); 
                 AudioEngine.play('lose');
                 finalScoreEl.innerText = player.score;
                 gameOverScreen.style.display = 'flex';
+                draw(); // Финальная отрисовка с тряской
             }
         }
 
@@ -957,6 +1088,7 @@
                 const row = arena.splice(y, 1)[0].fill(0); arena.unshift(row); ++y; rowCount++;
             }
             if (rowCount > 0) {
+                shake = rowCount * 3; // Тряска при сжигании
                 AudioEngine.play('win');
                 const lineScores = [0, 40, 100, 300, 1200];
                 player.score += lineScores[rowCount] * player.level; player.lines += rowCount;
@@ -1010,9 +1142,16 @@
 
         function draw() {
             context.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const isShaken = applyShake(context, shake);
+            if (shake > 0) shake *= 0.8;
+            if (shake < 0.5) shake = 0;
+
             drawGrid();
             drawMatrix(arena, { x: 0, y: 0 }, context);
-            if (player.matrix) { drawGhost(); drawMatrix(player.matrix, player.pos, context); }
+            if (player.matrix && !isGameOver) { drawGhost(); drawMatrix(player.matrix, player.pos, context); }
+            
+            if (isShaken) context.restore();
         }
 
         function drawNextPiece() {
@@ -1046,6 +1185,7 @@
                 if (rotationToggle && rotationToggle.checked) playerRotate(1);
             }
             else if (event.key === ' ') {
+                shake = 5; // Легкая тряска при падении
                 while (!collide(arena, player)) { player.pos.y++; }
                 player.pos.y--; merge(arena, player); playerReset(); arenaSweep(); updateScoreUI();
             }
@@ -1055,7 +1195,7 @@
         document.getElementById('tetris-start-btn')?.addEventListener('click', () => {
             AudioEngine.play('pop');
             arena = createMatrix(COLS, ROWS); player.score = 0; player.lines = 0; player.level = 1; dropInterval = 1000;
-            isGameOver = false; isPaused = false; gameOverScreen.style.display = 'none'; 
+            isGameOver = false; isPaused = false; gameOverScreen.style.display = 'none'; shake = 0;
             updateScoreUI(); playerReset(); lastTime = performance.now();
             cancelAnimationFrame(animationId); update(); document.getElementById('tetris-pause-btn').disabled = false;
         });
@@ -1084,13 +1224,16 @@
                     <div class="score-item score-w"><span data-i18n="moves">Moves</span>: <span id="solMoves" class="val">0</span></div>
                     <div class="score-item score-d"><span data-i18n="time">Time</span>: <span id="solTime" class="val">0:00</span></div>
                 </div>
+                <select id="solStyleSelect" class="difficulty-select" style="margin: 0 10px;">
+                    <option value="classic">Стиль: Классика</option>
+                    <option value="minecraft">Стиль: Майнкрафт</option>
+                </select>
                 <button id="solRestart" class="restart-btn" style="margin-top:0; width:auto;" data-i18n="restart">Restart</button>
             </div>
             
             <div class="game-status win" id="solStatus" style="display:none; width:100%; max-width:700px;" data-i18n="solWin">You Solved It! 🎉</div>
 
             <div class="solitaire-board" id="solBoard">
-                <!-- Верхний ряд: Колода, Отбой, пусто, 4 Дома -->
                 <div class="sol-row solitaire-top">
                     <div class="sol-col" id="sol-stock"></div>
                     <div class="sol-col" id="sol-waste"></div>
@@ -1100,7 +1243,6 @@
                     <div class="sol-col" id="sol-found-2"></div>
                     <div class="sol-col" id="sol-found-3"></div>
                 </div>
-                <!-- Нижний ряд: 7 игровых колонок -->
                 <div class="sol-row solitaire-bottom" style="margin-top:20px;">
                     <div class="sol-col" id="sol-tab-0"></div>
                     <div class="sol-col" id="sol-tab-1"></div>
@@ -1111,7 +1253,6 @@
                     <div class="sol-col" id="sol-tab-6"></div>
                 </div>
 
-                <!-- Правила Пасьянса -->
                 <details class="game-rules" style="margin-top: 30px;">
                     <summary data-i18n="rulesTitle">Правила</summary>
                     <div class="rules-content">
@@ -1131,14 +1272,19 @@
         let deck = [];
         let state = { stock: [], waste: [], foundations: [[], [], [], []], tableau: [[], [], [], [], [], [], []] };
         
-        let moves = 0;
-        let timerSeconds = 0;
-        let timerInterval = null;
-        let isWon = false;
-        let isLost = false;
-        let stockCycles = 0;
-        
+        let moves = 0; let timerSeconds = 0; let timerInterval = null;
+        let isWon = false; let isLost = false; let stockCycles = 0;
         let selected = null;
+
+        let currentSolStyle = localStorage.getItem('sol_style') || 'classic';
+        const styleSelect = document.getElementById('solStyleSelect');
+        styleSelect.value = currentSolStyle;
+        
+        styleSelect.addEventListener('change', (e) => {
+            currentSolStyle = e.target.value;
+            localStorage.setItem('sol_style', currentSolStyle);
+            renderBoard();
+        });
 
         function formatTime(sec) { const m = Math.floor(sec / 60); const s = sec % 60; return `${m}:${s < 10 ? '0' : ''}${s}`; }
 
@@ -1168,69 +1314,91 @@
             while (cardIndex < deck.length) { state.stock.push(deck[cardIndex++]); }
         }
 
-        function renderCard(card, pile, colIndex, cardIndex) {
+        function renderCard(card, pile, colIndex, cardIndex, isInitialDeal) {
             const div = document.createElement('div');
             div.className = `sol-card ${card.faceUp ? card.color : 'face-down'}`;
-            if (selected && selected.pile === pile && selected.col === colIndex && cardIndex >= selected.index) {
-                div.classList.add('selected');
-            }
+            if (selected && selected.pile === pile && selected.col === colIndex && cardIndex >= selected.index) div.classList.add('selected');
             
+            // Каскадная анимация раздачи
+            if (isInitialDeal && window.animEnabled) {
+                div.style.animation = `dealCard 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both`;
+                div.style.animationDelay = `${(colIndex * 3 + cardIndex) * 0.04}s`;
+            }
+
             if (pile === 'tableau') {
                 let yOffset = 0;
-                for(let i = 0; i < cardIndex; i++) {
-                    yOffset += state.tableau[colIndex][i].faceUp ? 28 : 12;
-                }
+                for(let i = 0; i < cardIndex; i++) yOffset += state.tableau[colIndex][i].faceUp ? 28 : 12;
                 div.style.top = `${yOffset}px`;
             }
 
             if (card.faceUp) {
+                let displayVal = card.val;
+                if (currentLang === 'ru' || currentLang === 'be' || currentLang === 'uk' || currentLang === 'kk') {
+                    if (card.val === 'J') displayVal = 'В';
+                    if (card.val === 'Q') displayVal = 'Д';
+                    if (card.val === 'K') displayVal = 'К';
+                    if (card.val === 'A') displayVal = 'Т';
+                }
+
+                let centerHtml = `<div class="sol-center-suit">${card.suit}</div>`;
+                const isMC = currentSolStyle === 'minecraft';
+                
+                if (card.val === 'J' || card.val === 'Q' || card.val === 'K') {
+                    if (isMC) {
+                        let mcIcon = card.val === 'J' ? '🧟' : (card.val === 'Q' ? '🐷' : '🐉');
+                        centerHtml = `<div class="sol-center-face">${mcIcon}</div>`;
+                    } else {
+                        centerHtml = `
+                            <div class="card-face-center ${card.color}">
+                                <div class="face-half top"><span class="face-letter">${displayVal}</span><span class="face-bg-suit">${card.suit}</span></div>
+                                <div class="face-half bottom"><span class="face-letter">${displayVal}</span><span class="face-bg-suit">${card.suit}</span></div>
+                            </div>
+                        `;
+                    }
+                }
+
                 div.innerHTML = `
                     <div class="sol-card-inner">
-                        <div style="text-align:left;"><span class="sol-val">${card.val}</span><br><span class="sol-suit">${card.suit}</span></div>
-                        <div class="sol-center-suit">${card.suit}</div>
-                        <div style="text-align:right; transform:rotate(180deg);"><span class="sol-val">${card.val}</span><br><span class="sol-suit">${card.suit}</span></div>
+                        <div class="card-corner top-left"><span class="sol-val">${displayVal}</span><span class="sol-suit">${card.suit}</span></div>
+                        ${centerHtml}
+                        <div class="card-corner bottom-right"><span class="sol-val">${displayVal}</span><span class="sol-suit">${card.suit}</span></div>
                     </div>
                 `;
             }
 
             div.addEventListener('click', (e) => { e.stopPropagation(); handleCardClick(pile, colIndex, cardIndex); });
             div.addEventListener('dblclick', (e) => { e.stopPropagation(); handleDoubleClick(pile, colIndex, cardIndex); });
-            
             return div;
         }
 
-        function renderBoard() {
+        function renderBoard(isInitialDeal = false) {
+            document.getElementById('solBoard').className = `solitaire-board style-${currentSolStyle}`;
+
             const stockEl = document.getElementById('sol-stock');
             stockEl.innerHTML = '<div class="sol-slot"></div>';
             if (state.stock.length > 0) {
                 const topStock = state.stock[state.stock.length - 1];
                 topStock.faceUp = false;
-                stockEl.appendChild(renderCard(topStock, 'stock', 0, state.stock.length - 1));
+                stockEl.appendChild(renderCard(topStock, 'stock', 0, state.stock.length - 1, isInitialDeal));
             }
             stockEl.onclick = () => handleStockClick();
 
             const wasteEl = document.getElementById('sol-waste');
             wasteEl.innerHTML = '<div class="sol-slot"></div>';
-            if (state.waste.length > 0) {
-                wasteEl.appendChild(renderCard(state.waste[state.waste.length - 1], 'waste', 0, state.waste.length - 1));
-            }
+            if (state.waste.length > 0) wasteEl.appendChild(renderCard(state.waste[state.waste.length - 1], 'waste', 0, state.waste.length - 1, isInitialDeal));
             wasteEl.onclick = () => { if(selected) handleEmptySlotClick('waste', 0); };
 
             for (let i = 0; i < 4; i++) {
                 const fEl = document.getElementById(`sol-found-${i}`);
                 fEl.innerHTML = '<div class="sol-slot"></div>';
-                if (state.foundations[i].length > 0) {
-                    fEl.appendChild(renderCard(state.foundations[i][state.foundations[i].length - 1], 'foundation', i, state.foundations[i].length - 1));
-                }
+                if (state.foundations[i].length > 0) fEl.appendChild(renderCard(state.foundations[i][state.foundations[i].length - 1], 'foundation', i, state.foundations[i].length - 1, isInitialDeal));
                 fEl.onclick = () => handleEmptySlotClick('foundation', i);
             }
 
             for (let i = 0; i < 7; i++) {
                 const tEl = document.getElementById(`sol-tab-${i}`);
                 tEl.innerHTML = '<div class="sol-slot"></div>';
-                state.tableau[i].forEach((card, idx) => {
-                    tEl.appendChild(renderCard(card, 'tableau', i, idx));
-                });
+                state.tableau[i].forEach((card, idx) => tEl.appendChild(renderCard(card, 'tableau', i, idx, isInitialDeal)));
                 tEl.onclick = () => handleEmptySlotClick('tableau', i);
             }
 
@@ -1243,74 +1411,38 @@
             AudioEngine.play('card');
             selected = null;
             if (state.stock.length > 0) {
-                let card = state.stock.pop();
-                card.faceUp = true;
-                state.waste.push(card);
+                let card = state.stock.pop(); card.faceUp = true; state.waste.push(card);
             } else {
                 if (state.waste.length === 0) return; 
-                while (state.waste.length > 0) {
-                    let card = state.waste.pop();
-                    card.faceUp = false;
-                    state.stock.push(card);
-                }
+                while (state.waste.length > 0) { let card = state.waste.pop(); card.faceUp = false; state.stock.push(card); }
                 stockCycles++;
             }
-            moves++;
-            renderBoard();
+            moves++; renderBoard();
         }
 
         function handleCardClick(pile, col, index) {
             if (isWon || isLost) return;
-
-            // Если кликнули по карте в колоде - это должен быть клик по самой колоде (перехватываем клик)
-            if (pile === 'stock') {
-                handleStockClick();
-                return;
-            }
+            if (pile === 'stock') { handleStockClick(); return; }
 
             AudioEngine.play('pop');
             let targetArray = getPileArray(pile, col);
-            let clickedCard = targetArray[index];
+            if (!targetArray[index].faceUp) return;
 
-            if (!clickedCard.faceUp) return;
-
-            if (!selected) {
-                selected = { pile, col, index };
-                renderBoard();
-                return;
-            }
-
-            if (selected.pile === pile && selected.col === col && selected.index === index) {
-                selected = null;
-                renderBoard();
-                return;
-            }
-
+            if (!selected) { selected = { pile, col, index }; renderBoard(); return; }
+            if (selected.pile === pile && selected.col === col && selected.index === index) { selected = null; renderBoard(); return; }
             attemptMove(pile, col);
         }
 
-        function handleEmptySlotClick(pile, col) {
-            if (!selected || isWon || isLost) return;
-            attemptMove(pile, col);
-        }
+        function handleEmptySlotClick(pile, col) { if (!selected || isWon || isLost) return; attemptMove(pile, col); }
 
         function handleDoubleClick(pile, col, index) {
             if (isWon || isLost) return;
             let targetArray = getPileArray(pile, col);
-            let clickedCard = targetArray[index];
-            if (!clickedCard.faceUp) return;
-            if (index !== targetArray.length - 1) return;
+            if (!targetArray[index].faceUp || index !== targetArray.length - 1) return;
 
             selected = { pile, col, index };
-            
-            for (let i = 0; i < 4; i++) {
-                if (isValidMove('foundation', i)) {
-                    executeMove('foundation', i);
-                    return;
-                }
-            }
-            selected = null;
-            renderBoard();
+            for (let i = 0; i < 4; i++) { if (isValidMove('foundation', i)) { executeMove('foundation', i); return; } }
+            selected = null; renderBoard();
         }
 
         function getPileArray(pile, col) {
@@ -1321,17 +1453,11 @@
         }
 
         function attemptMove(destPile, destCol) {
-            if (isValidMove(destPile, destCol)) {
-                executeMove(destPile, destCol);
-            } else {
+            if (isValidMove(destPile, destCol)) { executeMove(destPile, destCol); } 
+            else {
                 let destArray = getPileArray(destPile, destCol);
-                if (destArray.length > 0 && destPile !== 'foundation') {
-                    selected = { pile: destPile, col: destCol, index: destArray.length - 1 };
-                } else {
-                    selected = null;
-                }
-                AudioEngine.play('move'); 
-                renderBoard();
+                selected = (destArray.length > 0 && destPile !== 'foundation') ? { pile: destPile, col: destCol, index: destArray.length - 1 } : null;
+                AudioEngine.play('move'); renderBoard();
             }
         }
 
@@ -1346,7 +1472,6 @@
                 if (!topDestCard) return movingCard.num === 1;
                 return movingCard.suit === topDestCard.suit && movingCard.num === topDestCard.num + 1;
             }
-
             if (destPile === 'tableau') {
                 if (!topDestCard) return movingCard.num === 13;
                 return movingCard.color !== topDestCard.color && movingCard.num === topDestCard.num - 1;
@@ -1357,27 +1482,17 @@
         function executeMove(destPile, destCol) {
             let sourceArray = getPileArray(selected.pile, selected.col);
             let destArray = getPileArray(destPile, destCol);
-            
-            let cardsToMove = sourceArray.splice(selected.index, sourceArray.length - selected.index);
-            destArray.push(...cardsToMove);
+            destArray.push(...sourceArray.splice(selected.index, sourceArray.length - selected.index));
 
-            if (selected.pile === 'tableau' && sourceArray.length > 0) {
-                if (!sourceArray[sourceArray.length - 1].faceUp) {
-                    sourceArray[sourceArray.length - 1].faceUp = true;
-                }
+            if (selected.pile === 'tableau' && sourceArray.length > 0 && !sourceArray[sourceArray.length - 1].faceUp) {
+                sourceArray[sourceArray.length - 1].faceUp = true;
             }
 
-            AudioEngine.play('card');
-            moves++;
-            stockCycles = 0; 
-            selected = null;
-            renderBoard();
+            AudioEngine.play('card'); moves++; stockCycles = 0; selected = null; renderBoard();
         }
 
         function hasAvailableMoves() {
-            const originalSelected = selected;
-            let foundMove = false;
-
+            const originalSelected = selected; let foundMove = false;
             function checkCardMoves(pile, c, i) {
                 selected = { pile, col: c, index: i };
                 for (let f = 0; f < 4; f++) if (isValidMove('foundation', f)) return true;
@@ -1385,93 +1500,367 @@
                 return false;
             }
 
-            if (state.waste.length > 0) {
-                if (checkCardMoves('waste', 0, state.waste.length - 1)) foundMove = true;
-            }
-
+            if (state.waste.length > 0 && checkCardMoves('waste', 0, state.waste.length - 1)) foundMove = true;
             if (!foundMove) {
                 for (let c = 0; c < 7; c++) {
                     for (let i = 0; i < state.tableau[c].length; i++) {
-                        if (state.tableau[c][i].faceUp) {
-                            if (checkCardMoves('tableau', c, i)) { foundMove = true; break; }
-                        }
+                        if (state.tableau[c][i].faceUp && checkCardMoves('tableau', c, i)) { foundMove = true; break; }
                     }
                     if(foundMove) break;
                 }
             }
-
-            selected = originalSelected;
-            return foundMove;
+            selected = originalSelected; return foundMove;
         }
 
         function checkGameState() {
             if (isWon || isLost) return;
-            
             if (state.foundations.every(f => f.length === 13)) {
-                isWon = true;
-                clearInterval(timerInterval);
-                AudioEngine.play('win');
+                isWon = true; clearInterval(timerInterval); AudioEngine.play('win');
                 const statusEl = document.getElementById('solStatus');
-                statusEl.className = 'game-status win';
-                statusEl.innerText = getTranslation('solWin');
-                statusEl.style.display = 'block';
+                statusEl.className = 'game-status win'; statusEl.innerText = getTranslation('solWin'); statusEl.style.display = 'block';
                 return;
             }
 
             let hasMoves = hasAvailableMoves();
-            let deadEnd = false;
-
-            if (state.stock.length === 0 && state.waste.length === 0 && !hasMoves) {
-                deadEnd = true;
-            } else if (stockCycles >= 2 && !hasMoves) {
-                deadEnd = true;
-            }
-
-            if (deadEnd) {
-                isLost = true;
-                clearInterval(timerInterval);
-                AudioEngine.play('lose');
+            if ((state.stock.length === 0 && state.waste.length === 0 && !hasMoves) || (stockCycles >= 2 && !hasMoves)) {
+                isLost = true; clearInterval(timerInterval); AudioEngine.play('lose');
                 const statusEl = document.getElementById('solStatus');
-                statusEl.className = 'game-status lose';
-                statusEl.innerText = getTranslation('solLose');
-                statusEl.style.display = 'block';
+                statusEl.className = 'game-status lose'; statusEl.innerText = getTranslation('solLose'); statusEl.style.display = 'block';
             }
         }
 
         function startGame() {
-            clearInterval(timerInterval);
-            timerSeconds = 0;
-            moves = 0;
-            stockCycles = 0;
-            isWon = false;
-            isLost = false;
-            selected = null;
-            document.getElementById('solTime').innerText = "0:00";
-            document.getElementById('solStatus').style.display = 'none';
-            
-            createDeck();
-            dealCards();
-            renderBoard();
-            
-            timerInterval = setInterval(() => {
-                if(!isWon && !isLost) {
-                    timerSeconds++;
-                    document.getElementById('solTime').innerText = formatTime(timerSeconds);
-                }
-            }, 1000);
+            clearInterval(timerInterval); timerSeconds = 0; moves = 0; stockCycles = 0; isWon = false; isLost = false; selected = null;
+            document.getElementById('solTime').innerText = "0:00"; document.getElementById('solStatus').style.display = 'none';
+            createDeck(); dealCards(); renderBoard(true); // true для каскадной анимации
+            timerInterval = setInterval(() => { if(!isWon && !isLost) { timerSeconds++; document.getElementById('solTime').innerText = formatTime(timerSeconds); } }, 1000);
         }
 
-        document.getElementById('solRestart').addEventListener('click', () => {
-            AudioEngine.play('pop');
-            startGame();
-        });
-
+        document.getElementById('solRestart').addEventListener('click', () => { AudioEngine.play('pop'); startGame(); });
         startGame();
+
+        return { updateTexts: () => updateLanguage(), getStats: () => ({ w: isWon ? 1 : 0 }), destroy: () => clearInterval(timerInterval) };
+    }
+
+    // =========================================
+    // 13. ИГРА 7: ТАНЧИКИ (Battle City 1985)
+    // =========================================
+    function initTanks() {
+        gameContainer.innerHTML = `
+            <div class="tanks-header">
+                <div><span data-i18n="tanksKills">Enemies:</span> <span id="tankKills" style="color:var(--score-win);">0</span>/<span id="tankTotal">10</span></div>
+                <div><span data-i18n="level">Level</span>: <span id="tankLevelDisplay" style="color:var(--accent-color);">1</span></div>
+                <div><span data-i18n="tanksBase">Base:</span> <span id="tankBaseStatus" style="color:var(--score-win);" data-i18n="tanksBaseAlive">SECURE 🛡️</span></div>
+            </div>
+
+            <div style="position: relative;">
+                <canvas id="tanksCanvas" width="416" height="416" class="tanks-canvas"></canvas>
+                
+                <!-- Экран Победы на уровне -->
+                <div id="tanksVictoryScreen" class="tanks-overlay">
+                    <h2 style="color:var(--score-win); font-size: 28px; text-shadow:0 0 15px var(--score-win); margin-bottom: 20px;">ПОБЕДА!</h2>
+                    <button id="tanksNextLevelBtn" class="restart-btn" style="width: auto;">Следующий уровень</button>
+                </div>
+            </div>
+
+            <div class="snake-controls" style="margin-top: 10px;">
+                <div class="snake-btn" id="t-btn-up">▲</div>
+                <div class="snake-control-row">
+                    <div class="snake-btn" id="t-btn-left">◀</div>
+                    <div class="snake-btn" id="t-btn-down">▼</div>
+                    <div class="snake-btn" id="t-btn-right">▶</div>
+                </div>
+                <button class="restart-btn" id="t-btn-fire" style="margin-top: 10px; max-width: 200px;">🔥 ОГОНЬ</button>
+            </div>
+
+            <button id="tanksRestart" class="restart-btn" style="display:none; max-width: 416px;" data-i18n="restart">Play Again</button>
+
+            <details class="game-rules" style="margin-top: 20px;">
+                <summary data-i18n="rulesTitle">Правила</summary>
+                <div class="rules-content">
+                    <p><strong data-i18n="tankRule1Title">Цель:</strong> <span data-i18n="tankRule1Desc">...</span></p>
+                    <p><strong data-i18n="tankRule2Title">Управление:</strong> <span data-i18n="tankRule2Desc">...</span></p>
+                    <p><strong data-i18n="tankRule3Title">Блоки:</strong> <span data-i18n="tankRule3Desc">...</span></p>
+                </div>
+            </details>
+        `;
+        updateLanguage();
+
+        const canvas = document.getElementById('tanksCanvas');
+        const ctx = canvas.getContext('2d');
+        const killsEl = document.getElementById('tankKills');
+        const totalEl = document.getElementById('tankTotal');
+        const baseStatusEl = document.getElementById('tankBaseStatus');
+        const restartBtn = document.getElementById('tanksRestart');
+        const victoryScreen = document.getElementById('tanksVictoryScreen');
+        const levelDisplay = document.getElementById('tankLevelDisplay');
+
+        const TILE = 32;
+        const GRID_SIZE = 13;
+
+        let map = [];
+        let player = { x: 0, y: 0, w: 28, h: 28, dir: 'up', speed: 3, bullet: null };
+        let enemies = [];
+        let enemyBullets = [];
+        
+        let currentLevel = 1;
+        let kills = 0;
+        let totalEnemies = 10;
+        let spawnedCount = 0;
+        let isBaseAlive = true;
+        let isGameOver = false;
+        let isLevelComplete = false;
+        let gameLoop = null;
+        let shake = 0;
+
+        const keys = {};
+
+        function initMap() {
+            map = [
+                [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                [0,1,0,1,0,1,1,1,0,1,0,1,0],
+                [0,1,0,1,0,1,2,1,0,1,0,1,0],
+                [0,1,0,1,0,0,0,0,0,1,0,1,0],
+                [0,0,0,0,0,1,1,1,0,0,0,0,0],
+                [1,1,0,2,0,0,0,0,0,2,0,1,1],
+                [0,0,0,1,0,1,1,1,0,1,0,0,0],
+                [1,1,0,2,0,0,0,0,0,2,0,1,1],
+                [0,0,0,0,0,1,1,1,0,0,0,0,0],
+                [0,1,0,1,0,0,0,0,0,1,0,1,0],
+                [0,1,0,1,0,1,0,1,0,1,0,1,0],
+                [0,0,0,0,0,1,1,1,0,0,0,0,0],
+                [0,0,0,0,0,1,3,1,0,0,0,0,0],
+            ];
+        }
+
+        function startLevel(level) {
+            currentLevel = level;
+            totalEnemies = 5 + (level * 5);
+            kills = 0; spawnedCount = 0; isBaseAlive = true; isGameOver = false; isLevelComplete = false; shake = 0;
+            enemies = []; enemyBullets = [];
+            
+            player.x = 4 * TILE; player.y = 12 * TILE; player.bullet = null;
+            initMap();
+
+            levelDisplay.innerText = currentLevel;
+            killsEl.innerText = kills;
+            totalEl.innerText = totalEnemies;
+            victoryScreen.style.display = 'none';
+            restartBtn.style.display = 'none';
+            baseStatusEl.innerText = getTranslation('tanksBaseAlive');
+            baseStatusEl.style.color = "var(--score-win)";
+
+            cancelAnimationFrame(gameLoop); update();
+        }
+
+        function spawnEnemy() {
+            if (spawnedCount >= totalEnemies || enemies.length >= 3) return;
+            const spawnPoints = [{x: 0, y: 0}, {x: 6 * TILE, y: 0}, {x: 12 * TILE, y: 0}];
+            const sp = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
+            let baseSpeed = 1.5 + (currentLevel * 0.2); 
+            
+            enemies.push({ x: sp.x, y: sp.y, w: 28, h: 28, dir: 'down', speed: baseSpeed, changeDirTimer: 0, shootTimer: 0 });
+            spawnedCount++;
+        }
+
+        function checkCollision(x, y, w, h) {
+            if (x < 0 || y < 0 || x + w > canvas.width || y + h > canvas.height) return true;
+            const left = Math.floor(x / TILE), right = Math.floor((x + w - 1) / TILE);
+            const top = Math.floor(y / TILE), bottom = Math.floor((y + h - 1) / TILE);
+
+            for (let r = top; r <= bottom; r++) {
+                for (let c = left; c <= right; c++) {
+                    if (map[r] && (map[r][c] === 1 || map[r][c] === 2 || map[r][c] === 3)) return { r, c, type: map[r][c] };
+                }
+            }
+            return false;
+        }
+
+        function moveEntity(e, dir, speed) {
+            let nextX = e.x, nextY = e.y;
+            if (dir === 'up') nextY -= speed; if (dir === 'down') nextY += speed;
+            if (dir === 'left') nextX -= speed; if (dir === 'right') nextX += speed;
+
+            if (!checkCollision(nextX, nextY, e.w, e.h)) { e.x = nextX; e.y = nextY; }
+            e.dir = dir;
+        }
+
+        function shoot(shooter, isPlayer) {
+            if (isPlayer && shooter.bullet) return;
+            let bx = shooter.x + shooter.w / 2 - 3, by = shooter.y + shooter.h / 2 - 3;
+            let bullet = { x: bx, y: by, w: 6, h: 6, dir: shooter.dir, speed: 6, isPlayer };
+            if (isPlayer) { shooter.bullet = bullet; shake = 2; AudioEngine.play('shoot'); } 
+            else { enemyBullets.push(bullet); }
+        }
+
+        function updateBullets() {
+            if (player.bullet) {
+                for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                    let eb = enemyBullets[i];
+                    if (player.bullet && player.bullet.x < eb.x + eb.w && player.bullet.x + player.bullet.w > eb.x && player.bullet.y < eb.y + eb.h && player.bullet.y + player.bullet.h > eb.y) {
+                        player.bullet = null; enemyBullets.splice(i, 1); shake = 4; AudioEngine.play('pop'); break; 
+                    }
+                }
+            }
+
+            if (player.bullet) {
+                let b = player.bullet;
+                if (b.dir === 'up') b.y -= b.speed; if (b.dir === 'down') b.y += b.speed;
+                if (b.dir === 'left') b.x -= b.speed; if (b.dir === 'right') b.x += b.speed;
+
+                let hit = checkCollision(b.x, b.y, b.w, b.h);
+                if (hit) {
+                    if (hit.type === 1) map[hit.r][hit.c] = 0; 
+                    if (hit.type === 3) destroyBase();
+                    AudioEngine.play('explosion'); player.bullet = null;
+                } else {
+                    for (let i = enemies.length - 1; i >= 0; i--) {
+                        let en = enemies[i];
+                        if (b.x < en.x + en.w && b.x + b.w > en.x && b.y < en.y + en.h && b.y + b.h > en.y) {
+                            enemies.splice(i, 1); player.bullet = null; kills++; killsEl.innerText = kills; shake = 8;
+                            AudioEngine.play('explosion');
+                            if (kills >= totalEnemies) winLevel();
+                            break;
+                        }
+                    }
+                }
+            }
+
+            for (let i = enemyBullets.length - 1; i >= 0; i--) {
+                let b = enemyBullets[i];
+                if (b.dir === 'up') b.y -= b.speed; if (b.dir === 'down') b.y += b.speed;
+                if (b.dir === 'left') b.x -= b.speed; if (b.dir === 'right') b.x += b.speed;
+
+                let hit = checkCollision(b.x, b.y, b.w, b.h);
+                if (hit) {
+                    if (hit.type === 1) map[hit.r][hit.c] = 0;
+                    if (hit.type === 3) destroyBase();
+                    enemyBullets.splice(i, 1);
+                } else if (b.x < player.x + player.w && b.x + b.w > player.x && b.y < player.y + player.h && b.y + b.h > player.y) {
+                    enemyBullets.splice(i, 1); loseGame();
+                }
+            }
+        }
+
+        function updateEnemies() {
+            const dirs = ['up', 'down', 'left', 'right'];
+            enemies.forEach(en => {
+                en.changeDirTimer++; en.shootTimer++;
+                if (en.changeDirTimer > 60) { en.dir = dirs[Math.floor(Math.random() * dirs.length)]; en.changeDirTimer = 0; }
+                moveEntity(en, en.dir, en.speed);
+                if (en.shootTimer > 90) { shoot(en, false); en.shootTimer = 0; }
+            });
+        }
+
+        function destroyBase() {
+            isBaseAlive = false; map[12][6] = 0; shake = 20;
+            baseStatusEl.innerText = getTranslation('tanksBaseDead');
+            baseStatusEl.style.color = "var(--score-lose)";
+            loseGame();
+        }
+
+        function winLevel() { isLevelComplete = true; AudioEngine.play('win'); victoryScreen.style.display = 'flex'; }
+        function loseGame() { isGameOver = true; AudioEngine.play('lose'); restartBtn.style.display = 'block'; }
+
+        function drawTank(t, color) {
+            ctx.fillStyle = color; ctx.fillRect(t.x, t.y, t.w, t.h);
+            ctx.fillStyle = '#fff'; ctx.fillRect(t.x + t.w/4, t.y + t.h/4, t.w/2, t.h/2);
+            ctx.fillStyle = color;
+            if (t.dir === 'up') ctx.fillRect(t.x + t.w/2 - 2, t.y - 6, 4, 8);
+            if (t.dir === 'down') ctx.fillRect(t.x + t.w/2 - 2, t.y + t.h - 2, 4, 8);
+            if (t.dir === 'left') ctx.fillRect(t.x - 6, t.y + t.h/2 - 2, 8, 4);
+            if (t.dir === 'right') ctx.fillRect(t.x + t.w - 2, t.y + t.h/2 - 2, 8, 4);
+        }
+
+        function drawMap() {
+            for (let r = 0; r < GRID_SIZE; r++) {
+                for (let c = 0; c < GRID_SIZE; c++) {
+                    let tile = map[r][c];
+                    if (tile === 1) { 
+                        ctx.fillStyle = '#c84c0c'; ctx.fillRect(c * TILE, r * TILE, TILE, TILE);
+                        ctx.strokeStyle = '#000'; ctx.strokeRect(c * TILE, r * TILE, TILE, TILE);
+                    } else if (tile === 2) { 
+                        ctx.fillStyle = '#cbd5e1'; ctx.fillRect(c * TILE, r * TILE, TILE, TILE);
+                        ctx.fillStyle = '#fff'; ctx.fillRect(c * TILE + 4, r * TILE + 4, TILE - 8, TILE - 8);
+                    } else if (tile === 3) { 
+                        ctx.fillStyle = isBaseAlive ? '#fbbf24' : '#ef4444'; ctx.font = '24px Arial';
+                        ctx.fillText(isBaseAlive ? '🦅' : '💥', c * TILE + 4, r * TILE + 24);
+                    }
+                }
+            }
+        }
+
+        function update() {
+            if (isGameOver || isLevelComplete) {
+                // Если конец, но экран все еще трясется, дотрясем
+                if (shake > 0) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    const isShaken = applyShake(ctx, shake);
+                    shake *= 0.8; if (shake < 0.5) shake = 0;
+                    drawMap(); drawTank(player, 'var(--accent-color)'); enemies.forEach(en => drawTank(en, '#ef4444'));
+                    if (isShaken) ctx.restore();
+                    gameLoop = requestAnimationFrame(update);
+                }
+                return;
+            }
+
+            if (keys['KeyW'] || keys['ArrowUp']) moveEntity(player, 'up', player.speed);
+            else if (keys['KeyS'] || keys['ArrowDown']) moveEntity(player, 'down', player.speed);
+            else if (keys['KeyA'] || keys['ArrowLeft']) moveEntity(player, 'left', player.speed);
+            else if (keys['KeyD'] || keys['ArrowRight']) moveEntity(player, 'right', player.speed);
+
+            if (Math.random() < 0.02) spawnEnemy();
+
+            updateEnemies(); updateBullets();
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const isShaken = applyShake(ctx, shake);
+            if (shake > 0) shake *= 0.8;
+            if (shake < 0.5) shake = 0;
+
+            drawMap(); drawTank(player, 'var(--accent-color)');
+            enemies.forEach(en => drawTank(en, '#ef4444'));
+
+            ctx.fillStyle = '#fde047';
+            if (player.bullet) ctx.fillRect(player.bullet.x, player.bullet.y, player.bullet.w, player.bullet.h);
+            enemyBullets.forEach(b => ctx.fillRect(b.x, b.y, b.w, b.h));
+
+            if (isShaken) ctx.restore();
+
+            gameLoop = requestAnimationFrame(update);
+        }
+
+        function handleKeyDown(e) { keys[e.code] = true; if (e.code === 'Space') { e.preventDefault(); shoot(player, true); } }
+        function handleKeyUp(e) { keys[e.code] = false; }
+
+        document.addEventListener('keydown', handleKeyDown); document.addEventListener('keyup', handleKeyUp);
+
+        const addTouchEvent = (id, dir) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('touchstart', (e) => { e.preventDefault(); keys[dir] = true; });
+            el.addEventListener('touchend', (e) => { e.preventDefault(); keys[dir] = false; });
+            el.addEventListener('mousedown', () => { keys[dir] = true; });
+            el.addEventListener('mouseup', () => { keys[dir] = false; });
+        };
+        addTouchEvent('t-btn-up', 'KeyW'); addTouchEvent('t-btn-down', 'KeyS');
+        addTouchEvent('t-btn-left', 'KeyA'); addTouchEvent('t-btn-right', 'KeyD');
+
+        document.getElementById('t-btn-fire')?.addEventListener('click', () => shoot(player, true));
+        
+        restartBtn.addEventListener('click', () => startLevel(1));
+        document.getElementById('tanksNextLevelBtn').addEventListener('click', () => startLevel(currentLevel + 1));
+
+        startLevel(1);
 
         return {
             updateTexts: () => updateLanguage(),
-            getStats: () => ({ w: isWon ? 1 : 0 }), 
-            destroy: () => { clearInterval(timerInterval); }
+            getStats: () => ({ w: kills }),
+            destroy: () => {
+                cancelAnimationFrame(gameLoop);
+                document.removeEventListener('keydown', handleKeyDown);
+                document.removeEventListener('keyup', handleKeyUp);
+            }
         };
     }
 

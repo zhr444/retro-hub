@@ -48,6 +48,9 @@
                     </select>
 
                     <button id="btnLeaderboard" class="icon-toggle" aria-label="Leaderboard">🏆</button>
+                    <!-- Новые кнопки музыки и анимаций -->
+                    <button id="musicToggle" class="icon-toggle" aria-label="Toggle music"><span class="music-icon">🎵</span></button>
+                    <button id="animToggle" class="icon-toggle" aria-label="Toggle animations"><span class="anim-icon">✨</span></button>
                     <button id="soundToggle" class="icon-toggle" aria-label="Toggle sound"><span class="sound-icon">🔊</span></button>
                     <button id="themeToggle" class="icon-toggle" aria-label="Toggle theme"><span class="theme-icon">🌙</span></button>
                 </div>
@@ -93,12 +96,18 @@
                     <p class="game-desc" data-i18n="tetrisDesc">Classic block puzzle</p>
                 </div>
 
-                <!-- НОВАЯ ИГРА: ПАСЬЯНС -->
                 <div class="game-card" data-game="solitaire" draggable="true">
                     <button class="fav-btn" aria-label="Favorite">☆</button>
                     <div class="game-icon">🃏</div>
                     <h3 class="game-name" data-i18n="solitaire">Solitaire</h3>
                     <p class="game-desc" data-i18n="solitaireDesc">Classic card game</p>
+                </div>
+
+                <div class="game-card" data-game="tanks" draggable="true">
+                    <button class="fav-btn" aria-label="Favorite">☆</button>
+                    <div class="game-icon">🛡️</div>
+                    <h3 class="game-name" data-i18n="tanks">Battle City</h3>
+                    <p class="game-desc" data-i18n="tanksDesc">Classic 1985 tank combat</p>
                 </div>
             </div>
         </main>
@@ -123,6 +132,7 @@
                     <button class="lb-tab" data-tab="snake" data-i18n="snake">Snake</button>
                     <button class="lb-tab" data-tab="tetris" data-i18n="tetris">Tetris</button>
                     <button class="lb-tab" data-tab="solitaire" data-i18n="solitaire">Solitaire</button>
+                    <button class="lb-tab" data-tab="tanks" data-i18n="tanks">Battle City</button>
                 </div>
                 <div class="leaderboard-list" id="leaderboardList"></div>
             </div>
